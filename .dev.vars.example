@@ -1,0 +1,3 @@
+# Copy to .dev.vars for local testing only. Never commit .dev.vars.
+FAMILY_CODE=TESTCODE
+ADMIN_TOKEN=local-admin-password

@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clark Family Tree</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#dcecf1;--paper:#fffdf6;--ink:#2b2a22;--muted:#6f6a58;--line:#b3a186;--accent:#9a5a35;--accent2:#3f6f4f;--warn:#c4842a;--border:#e6dcc6;--soft:#f1ead9;--shadow:0 2px 4px rgba(40,50,30,.08),0 10px 30px rgba(40,60,40,.14);
+ --sky1:#7fbde6;--sky2:#c6e4f1;--sky3:#fbefd6;--sun:#fff6dc;--far:#9fbcc8;--hill1:#93c38a;--hill2:#76b06a;--meadow1:#b5da86;--meadow2:#6fa95b;--creek:#d6f0f6;--creek2:#8bc4d8;--creek3:#5d9bb3;
+ --bark:#634128;--bark2:#8d6544;--bark0:#462c1a;--leaf0:#33613c;--leaf1:#57944b;--leaf2:#82ba64;--leaf3:#aed686;--leafhi:#e8ef9e;--blossom:#f6c9cf;--sunlit:#efe49a;--cloud:#ffffff;--cloudsh:#dbe7ee;--mote:#fffbe6}
+@media (prefers-color-scheme:dark){:root{--bg:#1d2740;--paper:#1f2420;--ink:#f0eadb;--muted:#b3ab98;--line:#6a5c4b;--accent:#e6a173;--accent2:#8cc4a0;--warn:#e3ab45;--border:#38402f;--soft:#2b3127;--shadow:0 2px 6px rgba(0,0,0,.4),0 12px 30px rgba(0,0,0,.45);
+ --sky1:#141d38;--sky2:#34416a;--sky3:#d58f6c;--sun:#ffd3a8;--far:#3c4a6a;--hill1:#2f4f45;--hill2:#27453a;--meadow1:#35603f;--meadow2:#203d2c;--creek:#7f9cc4;--creek2:#56709a;--creek3:#3a4f73;
+ --bark:#3e2c20;--bark2:#5a4231;--bark0:#271a12;--leaf0:#173022;--leaf1:#2a5437;--leaf2:#3f7048;--leaf3:#588a5c;--leafhi:#b2c274;--blossom:#d99ab0;--sunlit:#b49a6a;--cloud:#c8b8c8;--cloudsh:#8a7f99;--mote:#fff1a8}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--sky2);color:var(--ink);font:14px/1.45 Inter,system-ui,sans-serif;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+header{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;gap:10px;align-items:center;padding:10px 14px;background:color-mix(in srgb,var(--paper) 65%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid color-mix(in srgb,var(--border) 60%,transparent);flex-wrap:wrap;transition:opacity .8s}
+.brand{display:flex;flex-direction:column;margin-right:auto;min-width:0}
+.brand h1{font:700 20px/1.1 Fraunces,Georgia,serif;margin:0;letter-spacing:-.01em}
+.brand span{color:var(--muted);font-size:12px}
+.search{position:relative}
+.search input{width:220px;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--paper)}
+.results{position:absolute;top:calc(100% + 4px);left:0;right:0;min-width:300px;background:var(--paper);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;display:none}
+.results button{display:block;width:100%;text-align:left;padding:9px 12px;border:0;background:none;cursor:pointer}
+.results button:hover,.results button:focus{background:var(--soft)}
+.results small{display:block;color:var(--muted)}
+.btn{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--paper);cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--line)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.ghost{background:none}
+.btn.danger{color:#b4442c;border-color:#e2b5a8}
+.seg{display:flex;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.seg button{border:0;padding:8px 12px;background:var(--paper);cursor:pointer}
+.seg button.on{background:var(--ink);color:var(--bg)}
+.badge{display:inline-block;min-width:18px;padding:0 6px;border-radius:9px;background:var(--warn);color:#fff;font-size:11px;font-weight:600;text-align:center;margin-left:4px}
+#stage{position:fixed;inset:0;touch-action:none;cursor:grab}
+#stage:active{cursor:grabbing}
+#svg{width:100%;height:100%;display:block}
+#three{position:fixed;inset:0;display:none}
+.card{fill:color-mix(in srgb,var(--paper) 94%,transparent);stroke:color-mix(in srgb,var(--leaf1) 50%,var(--border));stroke-width:1.3;filter:drop-shadow(0 4px 8px rgba(25,45,18,.22))}
+.node{cursor:pointer}
+.node:hover .card{stroke:var(--accent)}
+.node.sel .card{stroke:var(--accent);stroke-width:3}
+.node.flash .card{animation:flash 1.4s ease 2}
+@keyframes flash{50%{stroke:var(--accent);stroke-width:6}}
+.n1{font:600 13.5px Inter,sans-serif;fill:var(--ink)}
+.n2{font:500 12px Inter,sans-serif;fill:var(--muted)}
+.meta{font:italic 400 11px Fraunces,serif;fill:var(--muted)}
+.ini{fill:var(--soft)}
+.initxt{font:600 13px Fraunces,serif;fill:var(--accent2);text-anchor:middle}
+.vdot{fill:var(--warn)}
+.mound{fill:var(--meadow1);stroke:var(--hill2);stroke-width:3}
+.creek{fill:none;stroke:var(--creek2);stroke-width:26;stroke-linecap:round;opacity:.8}
+.tuft{fill:none;stroke:var(--meadow2);stroke-width:2.2;stroke-linecap:round;opacity:.85}
+.trunk{fill:var(--bark)}
+.bark{fill:none;stroke:var(--bark2);stroke-width:2.6;stroke-linecap:round;opacity:.75}
+.bark-dark{fill:none;stroke:var(--bark0);stroke-width:2.2;stroke-linecap:round;opacity:.55}
+.edge{fill:none;stroke:var(--bark);stroke-linecap:round}
+.marry{stroke:var(--leaf1);stroke-width:3;stroke-linecap:round}
+.arc{fill:none;stroke:var(--leaf1);stroke-width:2.2;stroke-dasharray:.012 .01;opacity:.85}
+.petal{fill:var(--blossom)}.pistil{fill:#f3d36b}
+.unk{fill:var(--paper);stroke:var(--bark2);stroke-dasharray:3 3}
+.unktxt{font:600 13px Fraunces;fill:var(--muted);text-anchor:middle}
+.unklabel{font:italic 12px Fraunces;fill:var(--muted)}
+.genlbl{font:italic 400 15px Fraunces,serif;fill:var(--ink);opacity:.5}
+.reveal .nin,.reveal .knot,.reveal .unkg,.reveal .marry{opacity:0;animation:bloom .7s cubic-bezier(.2,.8,.2,1.2) forwards;animation-delay:var(--d,0ms);transform-box:fill-box;transform-origin:center}
+.reveal .edge{stroke-dasharray:1;stroke-dashoffset:1;animation:grow 1.1s ease-out forwards;animation-delay:var(--d,0ms)}
+.reveal .arc{opacity:0;animation:fade .9s ease forwards;animation-delay:var(--d,0ms)}
+.reveal .foliage{opacity:0;animation:fade 2.2s ease forwards;animation-delay:.3s}
+@keyframes bloom{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+@keyframes grow{to{stroke-dashoffset:0}}
+@keyframes fade{to{opacity:.95}}
+@media (prefers-reduced-motion:reduce){.reveal *{animation:none!important;opacity:1!important;stroke-dashoffset:0!important}}
+/* painted backdrop + intro */
+.scene{position:fixed;inset:0;width:100%;height:100%;display:block}
+#backdrop{z-index:0;pointer-events:none}
+#stage{z-index:1}
+#intro{position:fixed;inset:0;z-index:40;overflow:hidden;background:var(--sky2)}
+#intro .scene{transition:transform 2.6s cubic-bezier(.6,0,.3,1),filter 2.6s ease;will-change:transform}
+#intro.go .scene{filter:blur(2px) brightness(1.08)}
+#intro.fade{opacity:0;transition:opacity 1s ease;pointer-events:none}
+.introtext{position:absolute;left:0;right:0;top:5vh;text-align:center;color:var(--ink);pointer-events:none;transition:opacity .8s}
+.introtext h1{font:500 clamp(38px,6.5vw,76px)/1 Fraunces,serif;margin:0;letter-spacing:-.02em;text-shadow:0 2px 20px color-mix(in srgb,var(--sky3) 70%,transparent)}
+.introtext p{font:italic 400 clamp(16px,2vw,21px) Fraunces,serif;margin:12px 0 0;opacity:.8}
+.walk{position:absolute;left:50%;bottom:7vh;transform:translateX(-50%);padding:14px 26px;border-radius:999px;border:0;background:color-mix(in srgb,var(--paper) 85%,transparent);backdrop-filter:blur(6px);box-shadow:var(--shadow);font:500 17px Fraunces,serif;cursor:pointer;color:var(--ink);transition:opacity .6s}
+.walk:hover{background:var(--paper)}
+.skip{position:absolute;right:16px;bottom:16px;background:none;border:0;color:var(--ink);opacity:.6;cursor:pointer;font-size:13px}
+#intro.go .introtext,#intro.go .walk,#intro.go .skip{opacity:0}
+.blade{transform-box:fill-box;transform-origin:50% 100%;animation:sway 3.6s ease-in-out infinite alternate}
+@keyframes sway{from{transform:rotate(-5deg)}to{transform:rotate(6deg)}}
+.cloud{animation:drift 140s linear infinite alternate}
+@keyframes drift{from{transform:translateX(-60px)}to{transform:translateX(120px)}}
+.canopy{transform-box:fill-box;transform-origin:50% 100%;animation:breathe 7s ease-in-out infinite alternate}
+@keyframes breathe{from{transform:rotate(-.8deg) scale(1)}to{transform:rotate(.9deg) scale(1.012)}}
+.shimmer{stroke-dasharray:10 26 4 18;animation:flow 5s linear infinite}
+.shimmer2{stroke-dasharray:6 32 14 22;animation:flow 7.5s linear infinite reverse}
+@keyframes flow{to{stroke-dashoffset:-116}}
+.mote{animation:float 9s ease-in-out infinite alternate}
+@keyframes float{from{transform:translate(0,0);opacity:.2}50%{opacity:.9}to{transform:translate(30px,-50px);opacity:.25}}
+.gust{animation:gust 11s ease-in-out infinite}
+@keyframes gust{from{transform:translateX(-900px)}to{transform:translateX(1900px)}}
+@media (prefers-reduced-motion:reduce){.blade,.cloud,.canopy,.shimmer,.shimmer2,.mote,.gust{animation:none}}
+#drawer{position:fixed;top:64px;right:12px;bottom:12px;width:380px;background:color-mix(in srgb,var(--paper) 94%,transparent);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);z-index:30;overflow:auto;transform:translateX(420px);transition:transform .28s ease;padding:18px}
+#drawer.open{transform:none}
+@media (max-width:720px){#drawer{top:auto;left:0;right:0;bottom:0;width:auto;height:72vh;border-radius:18px 18px 0 0;transform:translateY(100%)}#drawer.open{transform:none}.search input{width:150px}.brand span{display:none}}
+.dh{display:flex;gap:14px;align-items:center;margin-bottom:12px}
+.dh h2{font:700 22px/1.15 Fraunces,serif;margin:0}
+.sub{color:var(--muted)}
+.close{margin-left:auto;align-self:flex-start;border:0;background:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1}
+.avatar{width:72px;height:72px;border-radius:50%;background:var(--soft);display:flex;align-items:center;justify-content:center;font:600 22px Fraunces,serif;color:var(--muted);flex:none;overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.verify{background:color-mix(in srgb,var(--warn) 14%,var(--paper));border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);border-radius:10px;padding:8px 10px;margin:8px 0;font-size:13px}
+.sec{margin-top:16px}
+.sec h3{font:600 11px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--border);background:var(--soft);border-radius:999px;padding:4px 10px;cursor:pointer;font-size:13px}
+.chip:hover{border-color:var(--line)}
+.none{color:var(--muted);font-size:13px}
+.notes{white-space:pre-wrap}
+.heir{border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:8px;display:flex;gap:10px}
+.heir img{width:64px;height:64px;border-radius:8px;object-fit:cover;flex:none}
+.heir b{display:block;font-family:Fraunces,serif;font-size:15px}
+.heir p{margin:4px 0;white-space:pre-wrap}
+.heir small{color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+#modal{position:fixed;inset:0;background:rgba(20,14,8,.45);z-index:50;display:none;align-items:center;justify-content:center;padding:16px}
+#modal.open{display:flex}
+.mbox{background:var(--paper);border-radius:16px;box-shadow:var(--shadow);width:min(480px,100%);max-height:90vh;overflow:auto;padding:20px}
+.mbox h2{font:700 20px Fraunces,serif;margin:0 0 4px}
+.mbox p.lead{color:var(--muted);margin:0 0 14px}
+.f{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.f label{font-size:12px;color:var(--muted);font-weight:500}
+.f input,.f select,.f textarea{padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:var(--bg)}
+.row{display:flex;gap:10px}.row>.f{flex:1}
+.sub-item{border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:8px}
+.sub-item .actions{margin-top:8px}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:60;display:none;max-width:90vw}
+#msg{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:5;color:var(--ink);text-align:center;padding:30px}
+#msg div{max-width:420px;pointer-events:auto}
+#msg h2{font:700 22px Fraunces,serif;color:var(--ink);margin:0 0 8px}
+.hint{position:fixed;left:14px;bottom:12px;color:var(--ink);opacity:.7;font-size:12px;z-index:10}
+.hidden{display:none!important}
+#grain{position:fixed;inset:0;z-index:45;pointer-events:none;opacity:.13;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .3 0 0 0 0 .22 0 0 0 1.8 -.35'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E")}
+@media (prefers-color-scheme:dark){#grain{mix-blend-mode:screen;opacity:.08}}
+body.intro header,body.intro .hint,body.intro #msg{opacity:0;pointer-events:none}
+
+/* Original gallery-inspired design — text is intentionally not textured. */
+:root{--paper:#f8f5eb;--ink:#34392e;--muted:#686e5c;--border:#d8d4c4;--accent:#546b56;--accent2:#60755d;--soft:#ebeadd;--shadow:0 9px 35px rgba(43,52,39,.14)}
+header{background:rgba(248,245,235,.88);border-bottom:1px solid rgba(137,144,116,.23);backdrop-filter:blur(17px)}
+.brand h1{font-weight:500;letter-spacing:-.025em}
+#intro{background:#c9cdb5}
+#intro .scene{object-fit:cover}
+.introtext{top:6vh;color:#34483d;text-shadow:0 1px 25px rgba(247,238,215,.9)}
+.introtext h1{font-size:clamp(43px,6.2vw,82px);font-weight:500}
+.introtext p{opacity:.9}
+.walk{background:rgba(252,247,230,.92);border:1px solid rgba(99,120,92,.26);box-shadow:0 8px 30px rgba(35,62,47,.19)}
+#grain{display:none!important}
+#backdrop{filter:saturate(.89)}
+#stage{background:transparent}
+.card{fill:rgba(250,248,239,.97);stroke:#9cae91;filter:drop-shadow(0 2px 7px rgba(55,73,57,.12))}
+.node.sel .card{stroke:#927753}
+#drawer{background:rgba(250,247,237,.96);backdrop-filter:blur(14px)}
+
+/* Gallery-like 3D presentation and portrait hover cards */
+#three{background:radial-gradient(ellipse at 48% 27%,#fcf2da 0%,#d8dfca 48%,#8faca0 100%)}
+#three canvas{outline:none}
+#portraitHover{position:fixed;z-index:65;pointer-events:none;display:none;align-items:center;gap:12px;min-width:190px;max-width:280px;padding:10px 15px 10px 10px;background:rgba(252,248,236,.96);border:1px solid rgba(115,126,101,.36);border-radius:19px;box-shadow:0 14px 42px rgba(37,55,41,.25);backdrop-filter:blur(16px);transform:translate(18px,-50%);color:#354333;}
+#portraitHover.on{display:flex;animation:portraitEnter .18s ease-out}
+#portraitHover img{width:66px;height:66px;object-fit:cover;border-radius:50%;border:3px solid #f6efdb;box-shadow:0 0 0 1px #9daa94}
+#portraitHover strong{display:block;font:600 16px/1.2 Fraunces,Georgia,serif;letter-spacing:-.02em}
+#portraitHover small{display:block;margin-top:4px;font:12px/1.25 Inter,sans-serif;color:#747b68}
+@keyframes portraitEnter{from{opacity:0;scale:.96}to{opacity:1;scale:1}}
+#threeLegend{position:fixed;bottom:34px;left:50%;transform:translateX(-50%);z-index:8;pointer-events:none;text-align:center;display:none;color:#3e5747;background:rgba(251,246,229,.85);border:1px solid rgba(136,147,112,.33);border-radius:20px;padding:10px 20px;box-shadow:0 5px 22px rgba(54,70,48,.12);font:italic 15px Fraunces,Georgia,serif}
+body.mode3d #threeLegend{display:block}
+body.mode3d #hint{color:#4a6554;opacity:.9}
+.scene{object-fit:cover;object-position:50% 100%}
+@media (prefers-color-scheme:dark){:root{color-scheme:light;--bg:#dcecf1;--line:#b3a186;--warn:#c4842a;--sky1:#7fbde6;--sky2:#c6e4f1;--sky3:#fbefd6;--sun:#fff6dc;--far:#9fbcc8;--hill1:#93c38a;--hill2:#76b06a;--meadow1:#b5da86;--meadow2:#6fa95b;--creek:#d6f0f6;--creek2:#8bc4d8;--creek3:#5d9bb3;
+ --bark:#634128;--bark2:#8d6544;--bark0:#462c1a;--leaf0:#33613c;--leaf1:#57944b;--leaf2:#82ba64;--leaf3:#aed686;--leafhi:#e8ef9e;--blossom:#f6c9cf;--sunlit:#efe49a;--cloud:#ffffff;--cloudsh:#dbe7ee;--mote:#fffbe6}}
+@media(max-width:640px){#portraitHover img{width:52px;height:52px}#portraitHover{max-width:230px}#threeLegend{bottom:48px;font-size:12px}}
+</style>
+</head>
+<body class="intro">
+<canvas id="backdrop" class="scene" aria-hidden="true"></canvas>
+<div id="intro"><canvas class="scene" id="introScene" aria-hidden="true"></canvas>
+  <div class="introtext"><h1>The Clark Family</h1><p>Every branch carries a story</p></div>
+  <button class="walk" id="walk">Walk to the tree</button><button class="skip" id="skip">Skip</button></div>
+<header>
+  <div class="brand"><h1>The Clark Family</h1><span id="count">Loading…</span></div>
+  <div class="search"><input id="q" placeholder="Find a relative…" autocomplete="off"><div class="results" id="results"></div></div>
+  <div class="seg"><button id="v2" class="on">Tree</button><button id="v3">3D</button></div>
+  <button class="btn" id="fit">Fit</button>
+  <button class="btn hidden" id="unplacedBtn">Unplaced <span class="badge" id="unplacedN">0</span></button>
+  <button class="btn hidden" id="reviewBtn">Review <span class="badge" id="reviewN">0</span></button>
+  <button class="btn primary hidden" id="addBtn">+ Person</button>
+  <a class="btn primary hidden" id="addSelfBtn" href="/add" style="text-decoration:none">Add yourself</a>
+</header>
+<div id="stage"><svg id="svg"><g id="world"></g></svg></div>
+<div id="three"></div><div id="threeLegend">Every branch holds a story · Select a portrait to explore</div><div id="portraitHover" role="tooltip"></div>
+<div id="msg"><div><h2>Opening the family tree…</h2><p>Gathering everyone.</p></div></div>
+<div class="hint" id="hint">Drag to move · scroll or pinch to zoom · tap a person</div>
+<aside id="drawer" aria-label="Profile"></aside>
+<div id="modal"><div class="mbox" id="mbox"></div></div>
+<div id="toast"></div>
+<div id="grain" aria-hidden="true"></div>
+
+<script src="/shim.js"></script>
+<script>
+const W=156,H=72,SG=16,GX=18,GY=150;
+const PALETTE=['#5f9d52','#86bd68','#d98fa0','#7aa7c7','#c9a24a','#9a7bc0'];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let db=null,user=null,assets=null,canAdmin=false,canWrite=null,myId=null;
+let P={},U={},HL={},SUB={};
+let IDX=null,L=null,firstRender=true,sel=null,mode='2d',Graph=null;
+const view={x:0,y:0,k:1};
+const loaded={people:false,unions:false};
+
+function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',3800);}
+function showMsg(h,p){$('#msg').innerHTML=h?`<div><h2>${esc(h)}</h2><p>${esc(p||'')}</p></div>`:'';}
+
+const valid=id=>!!(id&&P[id]);
+const fullName=id=>{const p=P[id];if(!p)return 'Unknown';return `${p.first||''} ${p.last||''}`.trim()||'Unnamed';};
+const initials=id=>{const p=P[id]||{};return ((p.first||'?')[0]+((p.last||'')[0]||'')).toUpperCase();};
+const years=p=>p.born&&p.died?`${p.born}–${p.died}`:p.died?`d. ${p.died}`:p.born?`b. ${p.born}`:'';
+const trunc=(s,n)=>s.length>n?s.slice(0,n-1)+'…':s;
+const ord=o=>typeof o==='number'?o:9999;
+const blobUrl=id=>'/_blob/'+encodeURIComponent(id);
+const prng=seed=>{let a=(typeof seed==='string'?Math.floor(rnd(seed)*4294967296):seed)>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};};
+
+/* Impressionist brush: short curved strokes batched per colour+width */
+function brush(list,op,curve=.22){const by={};for(const b of list){const k=b.c+'|'+b.w;(by[k]=by[k]||[]).push(b);}let out='';
+  for(const k in by){const i=k.lastIndexOf('|'),c=k.slice(0,i),w=k.slice(i+1);let d='';
+    for(const b of by[k]){const dx=Math.cos(b.a)*b.l,dy=Math.sin(b.a)*b.l;d+=`M${(b.x-dx/2).toFixed(1)},${(b.y-dy/2).toFixed(1)}q${(dx/2-dy*curve).toFixed(1)},${(dy/2+dx*curve).toFixed(1)} ${dx.toFixed(1)},${dy.toFixed(1)}`;}
+    out+=`<path d="${d}" stroke="${c}" stroke-width="${w}" fill="none" stroke-linecap="round"/>`;}
+  return `<g opacity="${op??1}">${out}</g>`;}
+
+function dabs(n,seed,area,cols,widths,len,ang){const r=prng(seed),out=[];for(let i=0;i<n;i++){const p=area(r);if(!p)continue;
+  out.push({x:p[0],y:p[1],c:typeof cols==='function'?cols(r,p):cols[Math.floor(r()*cols.length)],w:widths[Math.floor(r()*widths.length)],l:len[0]+r()*(len[1]-len[0]),a:(ang?ang(r,p):(r()-.5)*.6)});}return out;}
+
+const inEllipse=(cx,cy,rx,ry,bias=1)=>r=>{const t=r()*Math.PI*2,d=Math.pow(r(),bias);return [cx+Math.cos(t)*d*rx,cy+Math.sin(t)*d*ry];};
+const rnd=str=>{let h=2166136261;for(const c of String(str)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return ((h>>>0)%10000)/10000;};
+
+/* Monet-style granular foliage cluster: builds shadow, midtone, and sunlit impasto dabs */
+function foliageCluster(seed,cx,cy,rx,ry,count){
+  const sunAng=-Math.PI*.75; // upper-left sunlight
+  const leafAng=(r,p)=>{
+    const dx=(p[0]-cx)/rx,dy=(p[1]-cy)/ry;
+    const tangent=Math.atan2(dy,dx)+Math.PI/2;
+    return tangent+(r()-.5)*1.35;
+  };
+  const shadow=dabs(Math.round(count*.32),seed+'sh',inEllipse(cx+rx*.14,cy+ry*.18,rx*.88,ry*.82,.65),
+    (r)=>r()<.35?'var(--far)':'var(--leaf0)',[3.5,5,6.5],[4,10],leafAng);
+  const mid=dabs(Math.round(count*.46),seed+'md',inEllipse(cx,cy,rx,ry,.62),
+    (r,p)=>{const k=r();return k<.45?'var(--leaf1)':k<.82?'var(--leaf2)':'var(--leaf0)';},[2.5,4,5.5],[5,12],leafAng);
+  const light=dabs(Math.round(count*.22),seed+'hi',inEllipse(cx-rx*.16,cy-ry*.2,rx*.84,ry*.78,.6),
+    (r,p)=>{
+      const dot=(p[0]-cx)*Math.cos(sunAng)+(p[1]-cy)*Math.sin(sunAng);
+      const k=r();
+      if(k<.08)return 'var(--blossom)';
+      if(dot>0&&k<.45)return 'var(--leafhi)';
+      if(dot>0&&k<.75)return 'var(--sunlit)';
+      return 'var(--leaf3)';
+    },[1.8,3,4.2],[4,9],leafAng);
+  return brush(shadow,.88,.28)+brush(mid,.92,.25)+brush(light,.95,.22);
+}
+
+/* ---------- index & layout ---------- */
+function buildIndex(){
+  const ids=Object.keys(P);const unionsOf={},kids={};
+  for(const uid in U){kids[uid]=[];const u=U[uid];for(const p of [u.a,u.b]) if(valid(p))(unionsOf[p]=unionsOf[p]||[]).push(uid);}
+  for(const id of ids){const pu=P[id].parentUnion;if(pu&&U[pu])kids[pu].push(id);}
+  const pSort=(a,b)=>ord(P[a].order)-ord(P[b].order)||((+P[a].born||9999)-(+P[b].born||9999))||a.localeCompare(b);
+  for(const uid in kids)kids[uid].sort(pSort);
+  for(const p in unionsOf)unionsOf[p].sort((a,b)=>ord(U[a].order)-ord(U[b].order)||a.localeCompare(b));
+  const hasParents=id=>{const pu=P[id].parentUnion;return !!(pu&&U[pu]);};
+  const partner=(uid,p)=>{const u=U[uid];return u.a===p?u.b:u.a;};
+  const owner={};
+  for(const uid in U){const u=U[uid];const a=valid(u.a)?u.a:null,b=valid(u.b)?u.b:null;
+    if(!a&&!b)owner[uid]=null;else if(a&&!b)owner[uid]=a;else if(b&&!a)owner[uid]=b;
+    else{const pa=hasParents(a),pb=hasParents(b);owner[uid]=(pb&&!pa)?b:a;}}
+  const home={};
+  for(const uid in U){const o=owner[uid];if(!o)continue;const q=partner(uid,o);if(valid(q)&&q!==o&&!hasParents(q)&&!home[q]&&!home[o])home[q]=o;}
+  const gen={},ug={};ids.forEach(i=>gen[i]=0);
+  for(let it=0;it<80;it++){let ch=false;
+    for(const uid in U){const u=U[uid];const ps=[u.a,u.b].filter(valid);let g;
+      if(ps.length)g=Math.max(...ps.map(p=>gen[p]));else g=kids[uid].length?Math.max(0,Math.min(...kids[uid].map(k=>gen[k]))-1):0;
+      ug[uid]=g;
+      for(const p of ps)if(gen[p]<g){gen[p]=g;ch=true;}
+      for(const k of kids[uid])if(gen[k]<g+1){gen[k]=g+1;ch=true;}}
+    if(!ch)break;}
+  IDX={ids,unionsOf,kids,owner,home,gen,ug,hasParents,partner};
+}
+
+function computeLayout(){
+  const {ids,unionsOf,kids,owner,home,gen,ug,hasParents,partner}=IDX;
+  const ownedUnions=p=>(unionsOf[p]||[]).filter(u=>owner[u]===p);
+  const blockOf=p=>{const sp=[];for(const u of ownedUnions(p)){const q=partner(u,p);if(valid(q)&&home[q]===p&&!sp.includes(q))sp.push(q);}
+    if(!sp.length)return [p];if(sp.length===1)return [p,sp[0]];return [sp[0],p,...sp.slice(1)];};
+  const memo={},visiting=new Set();
+  function info(p){if(memo[p])return memo[p];if(visiting.has(p))return {w:W,selfW:W,cw:0,blk:[p],ous:[]};visiting.add(p);
+    const blk=blockOf(p),selfW=blk.length*W+(blk.length-1)*SG,ous=ownedUnions(p);let cw=0,n=0,groups=0;
+    for(const u of ous){if(kids[u].length)groups++;for(const k of kids[u]){cw+=info(k).w;n++;}}
+    if(n)cw+=(n-1)*GX+Math.max(0,groups-1)*GX*2;visiting.delete(p);return memo[p]={w:Math.max(selfW,cw),selfW,cw,blk,ous};}
+  const vw=uid=>{const ks=kids[uid];return ks.reduce((s,k)=>s+info(k).w,0)+Math.max(0,ks.length-1)*GX;};
+  const pos={},placed=new Set();const Y=g=>-g*GY;
+  function placeP(p,left){const m=info(p);const bl=left+(m.w-m.selfW)/2;
+    m.blk.forEach((q,i)=>{if(placed.has(q))return;pos[q]={x:bl+i*(W+SG),y:Y(gen[q])};placed.add(q);});
+    let cl=left+(m.w-m.cw)/2,first=true;
+    for(const u of m.ous){const ks=kids[u];if(!ks.length)continue;if(!first)cl+=2*GX;first=false;
+      for(const k of ks){if(!placed.has(k))placeP(k,cl);cl+=info(k).w+GX;}}}
+  const roots=[];
+  for(const uid in U)if(owner[uid]===null&&kids[uid].length)roots.push({t:'u',id:uid,o:ord(U[uid].order)});
+  for(const id of ids)if(!hasParents(id)&&!home[id]&&(unionsOf[id]||[]).length)roots.push({t:'p',id,o:ord(P[id].order)});
+  roots.sort((a,b)=>a.o-b.o||a.id.localeCompare(b.id));
+  let cx=0;
+  for(const r of roots){if(r.t==='p'){if(placed.has(r.id))continue;const w=info(r.id).w;placeP(r.id,cx);cx+=w+90;}
+    else{let cl=cx;for(const k of kids[r.id]){if(!placed.has(k))placeP(k,cl);cl+=info(k).w+GX;}cx+=vw(r.id)+90;}}
+  const unplaced=ids.filter(id=>!placed.has(id));
+  const knots=[],edges=[],arcs=[],marries=[],anchors=[];
+  for(const uid in U){const u=U[uid];const o=owner[uid];let kx,ky,virtual=false;
+    const ks=kids[uid].filter(k=>pos[k]);
+    if(o===null){if(!ks.length)continue;const xs=ks.map(k=>pos[k].x+W/2);kx=(Math.min(...xs)+Math.max(...xs))/2;ky=Y(ug[uid])+H/2;virtual=true;}
+    else{if(!pos[o])continue;const q=partner(uid,o);
+      if(valid(q)&&pos[q]&&home[q]===o){const a=pos[o],b=pos[q];const l=a.x<b.x?a:b,r=a.x<b.x?b:a;kx=(l.x+W+r.x)/2;ky=a.y+H/2;marries.push({x1:l.x+W,x2:r.x,y:ky,uid,g:gen[o]});}
+      else{kx=pos[o].x+W/2;ky=pos[o].y;if(valid(q)&&pos[q])arcs.push({a:o,b:q,uid,g:gen[o]});}}
+    knots.push({uid,x:kx,y:ky,virtual,g:ug[uid]});
+    for(const k of ks){const cx=pos[k].x+W/2,cy=pos[k].y+H,dy=ky-cy;
+      edges.push({d:`M${kx},${ky}C${kx},${ky-dy*.55} ${cx},${cy+dy*.45} ${cx},${cy}`,g:ug[uid]});}}
+  for(const r of roots){if(r.t==='p'){const blk=info(r.id).blk.filter(q=>pos[q]);if(!blk.length)continue;
+      const xs=blk.map(q=>pos[q].x);anchors.push({x:(Math.min(...xs)+Math.max(...xs)+W)/2,y:pos[r.id].y+H});}
+    else{const k=knots.find(k=>k.uid===r.id);if(k)anchors.push({x:k.x,y:k.y+16});}}
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  for(const id in pos){const p=pos[id];minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x+W);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y+H);}
+  if(!isFinite(minX)){minX=0;maxX=W;minY=0;maxY=H;}
+  const groundY=Math.max(maxY,...anchors.map(a=>a.y))+170;
+  const gens=[...new Set(Object.keys(pos).map(id=>gen[id]).concat(knots.filter(k=>k.virtual).map(k=>k.g)))].sort((a,b)=>a-b);
+  L={pos,knots,edges,arcs,marries,anchors,groundY,unplaced,gens,bounds:{minX:minX-150,maxX:maxX+60,minY:minY-130,maxY:groundY+70}};
+}
+
+/* ---------- render 2D ---------- */
+function render(){
+  buildIndex();computeLayout();
+  const {pos,knots,edges,arcs,marries,anchors,groundY,gens,bounds}=L;const g=IDX.gen;
+  const D=gg=>`--d:${Math.round(gg*420)}ms`;const G=groundY;
+  let s='';
+  // grassy rise under the tree with dappled light & shadow depth
+  const mid=(bounds.minX+bounds.maxX)/2,half=(bounds.maxX-bounds.minX)/2+700;
+  let hill=`M${mid-half},${G+260}`;for(let x=mid-half;x<=mid+half;x+=240){hill+=`Q${x+120},${G+18+Math.sin(x/700)*26+(rnd('g'+x)-.5)*20} ${x+240},${G+30+Math.sin((x+240)/700)*22}`;}
+  s+=`<path d="${hill}V${G+20000}H${mid-half}Z" fill="var(--meadow1)" opacity=".18"/>`;
+  // canopy shadow pool on the grass
+  s+=brush(dabs(Math.min(150,half*.15),'gsh'+Math.round(half),r=>[mid+(r()-.5)*half*1.1,G+28+Math.pow(r(),.8)*90],['var(--leaf0)','var(--hill2)','var(--meadow2)'],[8,13],[16,38],r=>(r()-.5)*.45),.42);
+  // sunlit meadow strokes
+  s+=brush(dabs(Math.min(350,half*.33),'gnd'+Math.round(half),r=>[mid-half+r()*half*2,G+20+Math.pow(r(),.7)*260],['var(--meadow1)','var(--meadow2)','var(--leaf3)','var(--sunlit)','var(--leaf2)','var(--leaf1)'],[4,7,10],[10,28],r=>-Math.PI/2+(r()-.5)*1.15),.72);
+  let tufts='';for(let i=0;i<Math.min(1100,(half*2)/8);i++){const r=rnd('t'+i),x=mid-half+rnd('tx'+i)*half*2,yy=G+36+rnd('ty'+i)*200,h=11+(yy-G)/9+r*16,c=(rnd('tc'+i)-.5)*13;
+    tufts+=`M${x.toFixed(0)},${yy.toFixed(0)}q${(c*.3).toFixed(1)},${(-h*.5).toFixed(1)} ${c.toFixed(1)},${(-h).toFixed(1)}`;}
+  s+=`<path class="tuft" d="${tufts}"/>`;
+  let fl2='';for(let i=0;i<Math.min(320,half/12);i++){fl2+=`<circle cx="${(mid-half+rnd('fx'+i)*half*2).toFixed(0)}" cy="${(G+46+rnd('fy'+i)*195).toFixed(0)}" r="${(2.4+rnd('fr'+i)*2.4).toFixed(1)}" fill="${['#fff','var(--blossom)','#f3d36b','var(--leafhi)'][i%4]}"/>`;}
+  s+=fl2;
+
+  // granular, Monet-style layered leaf brushwork around every person
+  let fol='';
+  for(const id in pos){
+    const q=pos[id],cx=q.x+W/2,cy=q.y+H/2-8;
+    fol+=`<defs><radialGradient id="f${id}"><stop offset="0" stop-color="#91ad86" stop-opacity=".34"/><stop offset=".65" stop-color="#8aaa83" stop-opacity=".16"/><stop offset="1" stop-color="#9aaa87" stop-opacity="0"/></radialGradient></defs><ellipse cx="${cx}" cy="${cy}" rx="150" ry="91" fill="url(#f${id})"/>`;
+  }
+  s+=`<g class="foliage">${fol}</g>`;
+
+  // trunks with root shadows & deeper bark grain
+  for(const a of anchors){const x=a.x,y=a.y;
+    s+=`<ellipse cx="${x+10}" cy="${G+30}" rx="95" ry="14" fill="var(--leaf0)" opacity=".35"/>
+      <path class="trunk" d="M${x-20},${y-6}C${x-22},${y+60} ${x-36},${G-50} ${x-84},${G+30}L${x+84},${G+30}C${x+36},${G-50} ${x+22},${y+60} ${x+20},${y-6}Z"/>
+      <path class="bark-dark" d="M${x-11},${y+10}C${x-14},${y+70} ${x-18},${G-35} ${x-42},${G+24}M${x+2},${y+18}C${x},${y+85} ${x-4},${G-25} ${x-8},${G+26}"/>
+      <path class="bark" d="M${x-4},${y+20}C${x-6},${y+80} ${x-2},${G-40} ${x-14},${G+10}M${x+8},${y+35}C${x+11},${y+90} ${x+8},${G-30} ${x+24},${G+18}"/>`;}
+
+  // branches
+  for(const e of edges)s+=`<path class="edge" pathLength="1" d="${e.d}" style="stroke-width:${Math.max(2.4,12-e.g*2.6)};${D(e.g+.5)}"/>`;
+  for(const m of marries)s+=`<line class="marry" x1="${m.x1}" x2="${m.x2}" y1="${m.y}" y2="${m.y}" style="${D(m.g+.3)}"/>`;
+  for(const a of arcs){const p=pos[a.a],q=pos[a.b];const x1=p.x+W/2,x2=q.x+W/2,y1=p.y+H,y2=q.y+H,bot=Math.max(y1,y2)+44;
+    s+=`<path class="arc" pathLength="1" d="M${x1},${y1}C${x1},${bot} ${x2},${bot} ${x2},${y2}" style="${D(a.g+.4)}"><title>Married</title></path>`;}
+  for(const k of knots){if(k.virtual)s+=`<g class="unkg" style="${D(k.g)}"><circle class="unk" cx="${k.x}" cy="${k.y}" r="15"/><text class="unktxt" x="${k.x}" y="${k.y+5}">?</text><text class="unklabel" x="${k.x+24}" y="${k.y+4}">${esc(trunc(U[k.uid].notes||'Parents unknown',44))}</text></g>`;
+    else s+=`<g class="knot" style="${D(k.g+.3)}">${[0,72,144,216,288].map(a=>`<circle cx="${k.x+Math.cos(a*Math.PI/180)*4.2}" cy="${k.y+Math.sin(a*Math.PI/180)*4.2}" r="3.4" class="petal"/>`).join('')}<circle cx="${k.x}" cy="${k.y}" r="2.4" class="pistil"/></g>`;}
+  for(const gg of gens){const y=-gg*GY;s+=`<text class="genlbl" x="${bounds.minX+10}" y="${y+H/2+4}">Generation ${gg+1}</text>`;}
+  let i=0;
+  for(const id in pos){const p=P[id],q=pos[id],gg=g[id];const color=PALETTE[gg%PALETTE.length];
+    const meta=[p.nick?`“${p.nick}”`:'',years(p)].filter(Boolean).join(' · ');
+    const hl=Object.values(HL).filter(h=>h.person===id).length;
+    let av;
+    if(p.photo)av=`<clipPath id="c${i}"><circle cx="30" cy="${H/2}" r="21"/></clipPath><image href="${esc(blobUrl(p.photo))}" x="9" y="${H/2-21}" width="42" height="42" clip-path="url(#c${i})" preserveAspectRatio="xMidYMid slice"/>`;
+    else av=`<circle class="ini" cx="30" cy="${H/2}" r="21"/><text class="initxt" x="30" y="${H/2+4.5}">${esc(initials(id))}</text>`;
+    s+=`<g class="node${sel===id?' sel':''}" data-id="${esc(id)}" transform="translate(${q.x},${q.y})"><g class="nin" style="--d:${gg*420+260+(i%20)*22}ms">
+      <rect class="card" width="${W}" height="${H}" rx="${H/2}"/><path d="M${W-26},8c8,0 12,6 12,12c-8,0 -12,-5 -12,-12z" fill="${color}" opacity=".85"/>${av}
+      <text class="n1" x="60" y="27">${esc(trunc(p.first||'Unnamed',14))}</text>
+      <text class="n2" x="60" y="42">${esc(trunc(p.last||'',15))}</text>
+      <text class="meta" x="60" y="57">${esc(trunc(meta,19))}${hl?` · ◆${hl}`:''}</text>
+      ${p.verify?`<circle class="vdot" cx="${W-12}" cy="${H-14}" r="4.5"><title>Needs checking</title></circle>`:''}</g></g>`;i++;}
+  const world=$('#world');world.innerHTML=s;
+  $('#svg').classList.toggle('reveal',firstRender);
+  const n=IDX.ids.length;$('#count').textContent=`${n} ${n===1?'person':'people'} · ${L.gens.length} generations`;
+  $('#unplacedN').textContent=L.unplaced.length;$('#unplacedBtn').classList.toggle('hidden',!L.unplaced.length);
+  if(firstRender&&n){fit(false,innerWidth<720?.4:.55);firstRender=false;setTimeout(()=>$('#svg').classList.remove('reveal'),L.gens.length*420+2400);}
+  apply();
+  if(sel&&$('#drawer').classList.contains('open'))openProfile(sel,true);
+  if(mode==='3d'&&orchard)orchard.data();
+}
+
+/* ---------- pan / zoom ---------- */
+const svg=$('#svg');
+function apply(){$('#world').setAttribute('transform',`translate(${view.x},${view.y}) scale(${view.k})`);}
+function zoomAt(px,py,f){const k2=Math.min(3,Math.max(.06,view.k*f));f=k2/view.k;view.x=px-(px-view.x)*f;view.y=py-(py-view.y)*f;view.k=k2;apply();}
+function fit(anim=true,minK=0){if(!L)return;const b=L.bounds,r=svg.getBoundingClientRect();const top=$('header').offsetHeight;
+  const k=Math.max(minK,Math.min((r.width-40)/(b.maxX-b.minX),(r.height-top-40)/(b.maxY-b.minY),1.1));
+  const fitsH=(b.maxY-b.minY)*k<=r.height-top-30;tween({k,x:(r.width-(b.maxX-b.minX)*k)/2-b.minX*k,y:fitsH?top+20+((r.height-top-30)-(b.maxY-b.minY)*k)/2-b.minY*k:r.height-10-b.maxY*k},anim);}
+function centerOn(id){const p=L&&L.pos[id];if(!p)return false;const r=svg.getBoundingClientRect();const k=Math.max(view.k,.85);
+  const offX=$('#drawer').classList.contains('open')&&r.width>720?-200:0;
+  tween({k,x:r.width/2+offX-(p.x+W/2)*k,y:(r.width>720?r.height/2:r.height*.2+40)-(p.y+H/2)*k},true);return true;}
+function tween(t,anim){if(!anim||matchMedia('(prefers-reduced-motion:reduce)').matches){Object.assign(view,t);apply();return;}
+  const s={...view},t0=performance.now(),dur=600;cancelAnimationFrame(tween.raf);
+  const step=now=>{const e=Math.min(1,(now-t0)/dur),q=1-Math.pow(1-e,3);view.k=s.k+(t.k-s.k)*q;view.x=s.x+(t.x-s.x)*q;view.y=s.y+(t.y-s.y)*q;apply();if(e<1)tween.raf=requestAnimationFrame(step);};
+  tween.raf=requestAnimationFrame(step);}
+const ptrs=new Map();let moved=0,pinch=null;
+svg.addEventListener('pointerdown',e=>{svg.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;
+  if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y)};}});
+svg.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;const prev=ptrs.get(e.pointerId);const dx=e.clientX-prev.x,dy=e.clientY-prev.y;
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size===1){view.x+=dx;view.y+=dy;moved+=Math.abs(dx)+Math.abs(dy);apply();}
+  else if(ptrs.size===2&&pinch){const [a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);const r=svg.getBoundingClientRect();
+    zoomAt((a.x+b.x)/2-r.left,(a.y+b.y)/2-r.top,d/pinch.d);pinch.d=d;moved+=10;}});
+const up=e=>{if(!ptrs.has(e.pointerId))return;ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;
+  if(e.type==='pointerup'&&moved<6&&ptrs.size===0){const el=document.elementFromPoint(e.clientX,e.clientY);const n=el&&el.closest&&el.closest('.node');
+    if(n)openProfile(n.dataset.id);else closeDrawer();}};
+svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);
+svg.addEventListener('wheel',e=>{e.preventDefault();const r=svg.getBoundingClientRect();zoomAt(e.clientX-r.left,e.clientY-r.top,Math.exp(-e.deltaY*.0016));},{passive:false});
+addEventListener('resize',()=>{if(Graph){Graph.width(innerWidth);Graph.height(innerHeight);}});
+
+/* ---------- relations ---------- */
+function rel(id){const {unionsOf,kids,partner}=IDX;const p=P[id];const pu=p.parentUnion&&U[p.parentUnion]?p.parentUnion:null;
+  const parents=pu?[U[pu].a,U[pu].b].filter(valid):[];
+  const siblings=pu?kids[pu].filter(k=>k!==id):[];
+  const unions=(unionsOf[id]||[]).map(uid=>({uid,spouse:valid(partner(uid,id))?partner(uid,id):null,kids:kids[uid]}));
+  return {pu,parents,siblings,unions,children:unions.flatMap(u=>u.kids)};}
+function context(id){const r=rel(id);if(r.parents.length)return `child of ${r.parents.map(fullName).join(' & ')}`;
+  const sp=r.unions.map(u=>u.spouse).filter(Boolean);if(sp.length)return `married to ${sp.map(fullName).join(', ')}`;
+  return P[id].nick?`“${P[id].nick}”`:'not yet connected';}
+
+/* ---------- drawer ---------- */
+const chips=list=>list.length?`<div class="chips">${list.map(i=>`<button class="chip" data-go="${esc(i)}">${esc(fullName(i))}</button>`).join('')}</div>`:'<div class="none">None recorded</div>';
+async function openProfile(id,silent){if(!P[id])return;sel=id;const p=P[id],r=rel(id);
+  document.querySelectorAll('.node.sel').forEach(n=>n.classList.remove('sel'));
+  const nd=[...document.querySelectorAll('.node')].find(n=>n.dataset.id===id);if(nd)nd.classList.add('sel');
+  const hs=Object.entries(HL).filter(([,h])=>h.person===id).sort((a,b)=>(a[1].at||0)-(b[1].at||0));
+  let names={};if(user&&hs.length){try{names=await user.profiles(hs.map(([,h])=>h.by).filter(Boolean))||{};}catch(e){}}
+  if(sel!==id)return;
+  const spouses=r.unions.filter(u=>u.spouse).map(u=>u.spouse);
+  const unknownKids=r.unions.filter(u=>!u.spouse&&u.kids.length);
+  const meta=[p.nick?`“${p.nick}”`:'',years(p)].filter(Boolean).join(' · ');
+  const canSuggest=canWrite!==false;
+  $('#drawer').innerHTML=`
+   <div class="dh"><div class="avatar">${p.photo?`<img src="${esc(blobUrl(p.photo))}" alt="">`:esc(initials(id))}</div>
+     <div><h2>${esc(fullName(id))}</h2><div class="sub">${esc(meta||'Generation '+(IDX.gen[id]+1))}</div></div>
+     <button class="close" data-act="close" aria-label="Close">×</button></div>
+   ${p.verify?`<div class="verify"><b>Needs checking:</b> ${esc(p.verify)}</div>`:''}
+   ${p.notes?`<div class="notes">${esc(p.notes)}</div>`:''}
+   <div class="sec"><h3>Parents</h3>${r.pu&&!r.parents.length?`<div class="none">${esc(U[r.pu].notes||'Parents unknown')}</div>`:chips(r.parents)}</div>
+   <div class="sec"><h3>Spouse${spouses.length>1?'s':''}</h3>${chips(spouses)}</div>
+   <div class="sec"><h3>Children</h3>${chips(r.children)}${unknownKids.length?'<div class="none" style="margin-top:4px">Some with other parent not recorded</div>':''}</div>
+   <div class="sec"><h3>Siblings</h3>${chips(r.siblings)}</div>
+   <div class="sec"><h3>Heirlooms &amp; stories</h3>
+     ${hs.length?hs.map(([hid,h])=>`<div class="heir">${h.photo?`<img src="${esc(blobUrl(h.photo))}" alt="">`:''}<div><b>${esc(h.title||'Untitled')}</b><p>${esc(h.story||'')}</p>
+       <small>Attested by ${esc((names[h.by]&&names[h.by].name)||'a family member')}${h.at?' · '+new Date(h.at).toLocaleDateString():''}</small></div></div>`).join(''):'<div class="none">No heirlooms recorded yet.</div>'}</div>
+   <div class="actions">
+     ${canSuggest?`<button class="btn primary" data-act="relative">Add relative</button><button class="btn" data-act="heirloom">Add heirloom</button><button class="btn" data-act="edit">${canAdmin?'Edit':'Suggest edit'}</button>`:''}
+     ${canAdmin?`<button class="btn danger" data-act="remove">Remove</button>`:''}
+   </div>`;
+  $('#drawer').classList.add('open');
+  if(!silent&&mode==='2d')centerOn(id);}
+function closeDrawer(){$('#drawer').classList.remove('open');sel=null;document.querySelectorAll('.node.sel').forEach(n=>n.classList.remove('sel'));}
+$('#drawer').addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){openProfile(g.dataset.go);return;}
+  const a=e.target.closest('[data-act]');if(!a)return;const act=a.dataset.act;
+  if(act==='close')closeDrawer();else if(act==='relative')personForm('relative',sel);else if(act==='edit')personForm('edit',sel);
+  else if(act==='heirloom')heirloomForm(sel);else if(act==='remove')removeForm(sel);});
+
+/* ---------- modal & forms ---------- */
+function modal(html,onSubmit){$('#mbox').innerHTML=html;$('#modal').classList.add('open');const f=$('#mbox form');
+  if(f)f.addEventListener('submit',async e=>{e.preventDefault();const b=f.querySelector('[type=submit]');if(b){b.disabled=true;b.textContent='Saving…';}
+    try{await onSubmit(new FormData(f),f);closeModal();}catch(err){toast(err.message||'Could not save. Try again.');if(b){b.disabled=false;b.textContent='Try again';}}});
+  $('#mbox').querySelectorAll('[data-cancel]').forEach(b=>b.addEventListener('click',closeModal));}
+function closeModal(){$('#modal').classList.remove('open');$('#mbox').innerHTML='';}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+addEventListener('keydown',e=>{if(e.key==='Escape'){if($('#modal').classList.contains('open'))closeModal();else closeDrawer();}});
+
+const personFields=(p={})=>`
+  <div class="row"><div class="f"><label>First name</label><input name="first" required value="${esc(p.first)}"></div><div class="f"><label>Last name</label><input name="last" value="${esc(p.last)}"></div></div>
+  <div class="f"><label>Nickname</label><input name="nick" value="${esc(p.nick)}" placeholder="e.g. Mama Big"></div>
+  <div class="row"><div class="f"><label>Born (year)</label><input name="born" inputmode="numeric" value="${esc(p.born)}"></div><div class="f"><label>Died (year)</label><input name="died" inputmode="numeric" value="${esc(p.died)}"></div></div>
+  <div class="f"><label>Notes &amp; story</label><textarea name="notes" rows="3">${esc(p.notes)}</textarea></div>
+  <div class="f"><label>Photo</label><input type="file" name="photo" accept="image/*"></div>`;
+function readPerson(fd){const o={};for(const k of ['first','last','nick','born','died','notes']){const v=(fd.get(k)||'').toString().trim();o[k]=v;}return o;}
+async function upload(file){if(!file||!file.size)return null;if(!assets){toast('Photo uploads aren’t available for your access level — saved without the photo.');return null;}
+  const r=await assets.upload(file);return r.id;}
+
+function personForm(kind,anchor){const p=anchor?P[anchor]:{};const r=anchor?rel(anchor):null;
+  let relHtml='';
+  if(kind==='relative'){const opts=r.unions.map(u=>`<option value="${esc(u.uid)}">with ${esc(u.spouse?fullName(u.spouse):'unknown other parent')}</option>`).join('');
+    relHtml=`<div class="row"><div class="f"><label>This person is ${esc(p.first||'their')}’s…</label><select name="rel" id="relSel">
+      <option value="child">Child</option><option value="spouse">Spouse</option><option value="parent">Parent</option><option value="sibling">Sibling</option></select></div>
+      <div class="f" id="unionF"><label>Other parent</label><select name="union">${opts}<option value="__new">Someone not listed</option></select></div></div>`;}
+  const title=kind==='edit'?(canAdmin?`Edit ${fullName(anchor)}`:`Suggest an edit`):kind==='relative'?`Add a relative of ${fullName(anchor)}`:'Add a person';
+  const lead=canAdmin?'':'Your entry goes to the family organizer to approve before it appears on the tree.';
+  modal(`<form><h2>${esc(title)}</h2><p class="lead">${esc(lead)}</p>${relHtml}${personFields(kind==='edit'?p:{last:kind==='relative'?'':''})}
+    <div class="actions"><button type="submit" class="btn primary">${canAdmin?'Save':'Submit for review'}</button><button type="button" class="btn ghost" data-cancel>Cancel</button></div></form>`,
+  async(fd)=>{const data=readPerson(fd);const photo=await upload(fd.get('photo'));if(photo)data.photo=photo;
+    if(kind==='edit'){if(!photo)delete data.photo;
+      if(canAdmin){await db.collection('people').doc(anchor).update(data);toast('Saved.');}
+      else{await submit({kind:'edit',anchor,data});}}
+    else if(kind==='relative'){const relv=fd.get('rel'),uc=fd.get('union');
+      if(canAdmin){const nid=await applyPerson(relv,anchor,uc,data);toast(`${data.first} added.`);setTimeout(()=>openProfile(nid),400);}
+      else await submit({kind:'person',rel:relv,anchor,union:uc,data});}
+    else{if(canAdmin){const nid=await applyPerson(null,null,null,data);toast(`${data.first} added — find them under Unplaced to connect.`);}else await submit({kind:'person',rel:null,data});}});
+  const rs=$('#relSel');if(rs){const sync=()=>$('#unionF').style.display=rs.value==='child'?'':'none';rs.addEventListener('change',sync);sync();}}
+
+async function submit(s){await db.collection('submissions').add({...s,by:myId||null,at:Date.now()});toast('Sent for review. Thank you!');}
+
+async function applyPerson(relv,anchor,uc,data){
+  const people=db.collection('people'),unions=db.collection('unions');const ref=people.doc();const rec={...data,createdAt:Date.now()};
+  for(const k in rec)if(rec[k]==='')delete rec[k];
+  if(relv&&!P[anchor])throw new Error('That relative is no longer on the tree.');
+  if(relv==='child'){let uid=uc;if(!uid||uid==='__new'||!U[uid]){const ur=unions.doc();await ur.set({a:anchor,b:null});uid=ur.id;}rec.parentUnion=uid;await ref.set(rec);}
+  else if(relv==='spouse'){await ref.set(rec);await unions.doc().set({a:anchor,b:ref.id});}
+  else if(relv==='parent'){const pu=P[anchor].parentUnion;
+    if(pu&&U[pu]){const u=U[pu];const slot=!valid(u.a)?'a':!valid(u.b)?'b':null;if(!slot)throw new Error(`${fullName(anchor)} already has two parents recorded.`);
+      await ref.set(rec);await unions.doc(pu).update({[slot]:ref.id});}
+    else{await ref.set(rec);const ur=unions.doc();await ur.set({a:ref.id,b:null});await people.doc(anchor).update({parentUnion:ur.id});}}
+  else if(relv==='sibling'){let pu=P[anchor].parentUnion;if(!(pu&&U[pu])){const ur=unions.doc();await ur.set({a:null,b:null,notes:'Parents unknown'});pu=ur.id;await people.doc(anchor).update({parentUnion:pu});}
+    rec.parentUnion=pu;await ref.set(rec);}
+  else await ref.set(rec);
+  return ref.id;}
+
+function heirloomForm(pid){modal(`<form><h2>Add an heirloom</h2><p class="lead">An object’s value is its story. Record what it is, who it belonged to, and how it came down.${canAdmin?'':' Your entry is reviewed before it appears.'}</p>
+  <div class="f"><label>What is it?</label><input name="title" required placeholder="e.g. Mama Big’s cast-iron skillet"></div>
+  <div class="f"><label>The story</label><textarea name="story" rows="5" placeholder="Where it came from, who used it, what it meant…"></textarea></div>
+  <div class="f"><label>Photo of the object</label><input type="file" name="photo" accept="image/*"></div>
+  <div class="actions"><button type="submit" class="btn primary">${canAdmin?'Save heirloom':'Submit for review'}</button><button type="button" class="btn ghost" data-cancel>Cancel</button></div></form>`,
+  async fd=>{const h={person:pid,title:fd.get('title').trim(),story:(fd.get('story')||'').trim(),by:myId||null,at:Date.now()};const ph=await upload(fd.get('photo'));if(ph)h.photo=ph;
+    if(canAdmin){await db.collection('heirlooms').add(h);toast('Heirloom saved.');}else await submit({kind:'heirloom',anchor:pid,data:h});});}
+
+function removeForm(id){modal(`<form><h2>Remove ${esc(fullName(id))}?</h2><p class="lead">This takes them off the tree. Their children stay, connected to the other parent if one is recorded. This can’t be undone.</p>
+  <div class="actions"><button type="submit" class="btn danger">Remove</button><button type="button" class="btn ghost" data-cancel>Cancel</button></div></form>`,
+  async()=>{for(const uid in U){const u=U[uid];const ch={};if(u.a===id)ch.a=null;if(u.b===id)ch.b=null;if(Object.keys(ch).length)await db.collection('unions').doc(uid).update(ch);}
+    await db.collection('people').doc(id).delete();closeDrawer();toast('Removed.');});}
+
+/* ---------- review queue ---------- */
+async function openReview(){const items=Object.entries(SUB).sort((a,b)=>(a[1].at||0)-(b[1].at||0));
+  let names={};if(user&&items.length){try{names=await user.profiles(items.map(([,s])=>s.by).filter(Boolean))||{};}catch(e){}}
+  const desc=s=>{const n=`${s.data?.first||''} ${s.data?.last||''}`.trim();
+    if(s.kind==='person')return s.rel&&P[s.anchor]?`Add <b>${esc(n)}</b> as ${esc(s.rel)} of ${esc(fullName(s.anchor))}`:`Add <b>${esc(n)}</b> (not connected)`;
+    if(s.kind==='edit')return `Edit <b>${esc(fullName(s.anchor))}</b>: ${esc(Object.entries(s.data||{}).filter(([k,v])=>v&&k!=='photo').map(([k,v])=>k+' → '+v).join(', ')||'photo')}`;
+    if(s.kind==='heirloom')return `Heirloom for <b>${esc(fullName(s.anchor))}</b>: ${esc(s.data?.title||'')}<br><small>${esc(trunc(s.data?.story||'',160))}</small>`;return 'Unknown entry';};
+  $('#mbox').innerHTML=`<h2>Waiting for review</h2><p class="lead">Approve to add to the tree, or decline to discard.</p>
+   ${items.length?items.map(([id,s])=>`<div class="sub-item"><div>${desc(s)}</div><small class="sub">From ${esc((names[s.by]&&names[s.by].name)||'a family member')} · ${new Date(s.at||0).toLocaleString()}</small>
+     <div class="actions"><button class="btn primary" data-ok="${esc(id)}">Approve</button><button class="btn" data-no="${esc(id)}">Decline</button></div></div>`).join(''):'<div class="none">Nothing waiting.</div>'}
+   <div class="actions"><button class="btn ghost" data-cancel>Close</button></div>`;
+  $('#modal').classList.add('open');$('#mbox').querySelector('[data-cancel]').onclick=closeModal;
+  $('#mbox').onclick=async e=>{const ok=e.target.closest('[data-ok]'),no=e.target.closest('[data-no]');if(!ok&&!no)return;const id=(ok||no).dataset.ok||(ok||no).dataset.no;const s=SUB[id];
+    e.target.disabled=true;
+    try{if(ok){if(s.kind==='person')await applyPerson(s.rel,s.anchor,s.union,s.data||{});
+        else if(s.kind==='edit'){if(!P[s.anchor])throw new Error('That person is no longer on the tree.');const d={...s.data};for(const k in d)if(d[k]==='')delete d[k];await db.collection('people').doc(s.anchor).update(d);}
+        else if(s.kind==='heirloom')await db.collection('heirlooms').add({...s.data});}
+      await db.collection('submissions').doc(id).delete();toast(ok?'Approved.':'Declined.');setTimeout(openReview,300);}
+    catch(err){toast(err.message||'Could not apply that entry.');e.target.disabled=false;}};}
+
+function openUnplaced(){$('#mbox').innerHTML=`<h2>Not yet connected</h2><p class="lead">These people are on file but not linked to anyone yet. Open one and use “Add relative” from someone they’re related to, or fix their record.</p>
+  ${L.unplaced.map(id=>`<div class="sub-item"><b>${esc(fullName(id))}</b>${P[id].notes?`<div class="sub">${esc(P[id].notes)}</div>`:''}${P[id].verify?`<div class="verify">${esc(P[id].verify)}</div>`:''}
+   <div class="actions"><button class="btn" data-open="${esc(id)}">Open profile</button></div></div>`).join('')}
+  <div class="actions"><button class="btn ghost" data-cancel>Close</button></div>`;
+  $('#modal').classList.add('open');$('#mbox').querySelector('[data-cancel]').onclick=closeModal;
+  $('#mbox').onclick=e=>{const b=e.target.closest('[data-open]');if(b){closeModal();openProfile(b.dataset.open,true);}};}
+
+/* ---------- search ---------- */
+const q=$('#q'),res=$('#results');
+q.addEventListener('input',()=>{const t=q.value.trim().toLowerCase();if(!t||!IDX){res.style.display='none';return;}
+  const hits=IDX.ids.filter(id=>{const p=P[id];return `${p.first} ${p.last} ${p.nick||''}`.toLowerCase().includes(t);}).slice(0,8);
+  res.innerHTML=hits.length?hits.map(id=>`<button data-go="${esc(id)}">${esc(fullName(id))}${P[id].nick?` “${esc(P[id].nick)}”`:''}<small>${esc(context(id))}</small></button>`).join(''):'<button disabled>No one by that name yet</button>';
+  res.style.display='block';});
+res.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(!b)return;res.style.display='none';q.value='';const id=b.dataset.go;
+  if(mode==='3d')setMode('2d');openProfile(id);const n=[...document.querySelectorAll('.node')].find(n=>n.dataset.id===id);if(n){n.classList.remove('flash');void n.getBBox();n.classList.add('flash');}});
+q.addEventListener('blur',()=>setTimeout(()=>res.style.display='none',200));
+
+/* ---------- Self-contained, interactive 3D family orchard ----------
+   Uses the native canvas API, not CDN scripts or WebGL extensions.
+   Family nodes occupy actual 3D coordinates, with orbit / zoom / hover. */
+function graphData(){const nodes=[],links=[];const {kids,gen}=IDX;
+  for(const id of IDX.ids)nodes.push({id,name:fullName(id),gen:gen[id],kind:'p',photo:P[id].photo||null,nick:P[id].nick||'',years:years(P[id])});
+  for(const uid in U){const ps=[U[uid].a,U[uid].b].filter(valid);if(!ps.length&&!kids[uid].length)continue;
+    nodes.push({id:'u:'+uid,kind:'u'});
+    ps.forEach(p=>links.push({source:p,target:'u:'+uid}));kids[uid].forEach(k=>links.push({source:'u:'+uid,target:k}));}
+  return {nodes,links};}
+const portraitHover=$('#portraitHover');let hoveredPerson=null;
+function positionHover(x,y){const w=portraitHover.offsetWidth||230,h=portraitHover.offsetHeight||95;
+  portraitHover.style.left=Math.max(8,Math.min(innerWidth-w-20,x+17))+'px';
+  portraitHover.style.top=Math.max(h/2+8,Math.min(innerHeight-h/2-8,y))+'px';
+  portraitHover.style.transform='translate(0,-50%)';}
+function showPortrait(id,x,y,any){const p=P[id];if(!p||(!p.photo&&!any)){hidePortrait();return;}
+  if(hoveredPerson!==id){hoveredPerson=id;
+    portraitHover.innerHTML=`${p.photo?`<img src="${esc(blobUrl(p.photo))}" alt="Portrait of ${esc(fullName(id))}">`:`<span style="width:52px;height:52px;border-radius:50%;background:#dfe4cc;display:flex;align-items:center;justify-content:center;font:600 18px Fraunces,Georgia,serif;color:#5d775f;flex:none">${esc(initials(id))}</span>`}<div><strong>${esc(fullName(id))}</strong><small>${esc(p.nick||years(p)||'Family profile')} · View profile</small></div>`;
+    portraitHover.classList.add('on');}positionHover(x,y);}
+function hidePortrait(){hoveredPerson=null;portraitHover.classList.remove('on');}
+let lastPointer={x:0,y:0};
+document.addEventListener('pointermove',e=>{lastPointer={x:e.clientX,y:e.clientY};if(hoveredPerson)positionHover(e.clientX,e.clientY);},{passive:true});
+$('#stage').addEventListener('pointerover',e=>{const n=e.target.closest?.('.node');if(n)showPortrait(n.dataset.id,e.clientX,e.clientY);});
+$('#stage').addEventListener('pointerout',e=>{const n=e.target.closest?.('.node');if(n&&!n.contains(e.relatedTarget))hidePortrait();});
+$('#stage').addEventListener('pointercancel',hidePortrait);
+
+let orchard=null;
+function startOrchard(){
+ if(orchard){orchard.resize();orchard.data();return;}
+ const host=$('#three'), cv=document.createElement('canvas');cv.setAttribute('aria-label','Interactive three dimensional Clark Family Tree');
+ cv.style.cssText='display:block;width:100%;height:100%;cursor:grab;touch-action:none';host.replaceChildren(cv);
+ const ctx=cv.getContext('2d');if(!ctx){toast('Canvas is unavailable. Return to the Tree view.');return;}
+ const state={yaw:-.18,pitch:.14,zoom:1,panX:0,panY:0,pressed:false,dragged:false,px:0,py:0,selected:null,points:[],links:[],hits:[],photos:new Map(),w:0,h:0};
+ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+ const CARD_W=150,CARD_H=54;
+ const rand=n=>{let x=Math.sin(n*127.1+33.2)*43758.5453;return x-Math.floor(x);};
+ function resize(){const dpr=Math.min(devicePixelRatio||1,2);state.w=host.clientWidth||innerWidth;state.h=host.clientHeight||innerHeight;
+  cv.width=Math.round(state.w*dpr);cv.height=Math.round(state.h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);draw();}
+ function data(){if(!IDX||!L)return;const d=graphData(),p=L.pos;
+  // World units = the 2D tree's own spacing, so cards never outgrow the room between relatives.
+  const px=Object.values(p).map(o=>o.x),center=(Math.min(...px)+Math.max(...px)+156)/2;
+  const GEN=150;                      // vertical gap between generations
+  const off=new Map();                // per-person x / y / z placement
+  for(const uid in IDX.kids){
+    const ks=IDX.kids[uid].filter(id=>p[id]);const n=ks.length;if(!n)continue;
+    const cx=ks.reduce((a,id)=>a+(p[id].x+78-center),0)/n;
+    ks.forEach((id,idx)=>{const bx=p[id].x+78-center;
+      if(n>=4){ // big families: two staggered rows, like leaves on either side of a twig
+        const back=idx%2===1;
+        off.set(id,{x:cx+(bx-cx)*.56,dy:back?-64:0,z:back?70:-10});
+      }else off.set(id,{x:bx,dy:0,z:0});});
+  }
+  // Separate family trees (e.g. Clark and Parker–Farnish) stand one behind another instead of far apart.
+  const xOf=id=>(off.get(id)||{x:p[id].x+78-center}).x;
+  const ids=Object.keys(p).sort((a,b)=>xOf(a)-xOf(b));const shift=new Map();let dx=0,dz=0;
+  for(let i=0;i<ids.length;i++){if(i){const gap=xOf(ids[i])-xOf(ids[i-1]);if(gap>420){dx+=gap-260;dz+=420;}}shift.set(ids[i],{dx,dz});}
+  for(const id of ids){const o=off.get(id)||{x:p[id].x+78-center,dy:0,z:0};const sh=shift.get(id);off.set(id,{x:o.x-sh.dx,dy:o.dy,z:o.z+sh.dz});}
+  const points=[];const byId=new Map();
+  for(const n of d.nodes){let q;
+   if(n.kind==='p'){const v=p[n.id];if(!v)continue;const o=off.get(n.id)||{x:v.x+78-center,dy:0,z:0};
+    q={...n,x:o.x,y:-(IDX.gen[n.id]||0)*GEN+o.dy,z:o.z};
+   }else{const uid=n.id.slice(2),u=U[uid],kids=IDX.kids[uid]||[];
+    const partner=[u.a,u.b].filter(id=>p[id]);const known=partner.length?partner:kids.filter(id=>p[id]);if(!known.length)continue;
+    const pos=id=>off.get(id)||{x:p[id].x+78-center,dy:0,z:0};
+    const gen=partner.length?Math.max(...partner.map(id=>IDX.gen[id]||0)):Math.max(0,(IDX.gen[kids[0]]||1)-1);
+    q={...n,x:known.reduce((a,id)=>a+pos(id).x,0)/known.length,y:-gen*GEN-(partner.length?38:-30),z:known.reduce((a,id)=>a+pos(id).z,0)/known.length};
+   }
+   points.push(q);byId.set(q.id,q);
+  }
+  state.points=points;state.links=d.links.map(l=>({a:byId.get(l.source),b:byId.get(l.target)})).filter(l=>l.a&&l.b);
+  // Fit the whole family on screen to start; scroll or pinch zooms in to read.
+  const ppl=points.filter(n=>n.kind==='p');
+  const xs=ppl.map(n=>n.x),ys=ppl.map(n=>n.y);
+  const spanX=Math.max(...xs)-Math.min(...xs)+CARD_W,spanY=Math.max(...ys)-Math.min(...ys)+CARD_H+40;
+  state.zoom=clamp(Math.min((state.w-60)/spanX,(state.h-190)/spanY),.12,1.3);state.panX=0;state.panY=0;
+  const top=70,bottom=state.h-110;
+  for(let it=0;it<4;it++){let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+    for(const n of ppl){const q=project(n),hw=CARD_W*q.s/2,hh=CARD_H*q.s/2;x0=Math.min(x0,q.x-hw);x1=Math.max(x1,q.x+hw);y0=Math.min(y0,q.y-hh);y1=Math.max(y1,q.y+hh);}
+    const f=Math.min((state.w-40)/(x1-x0),(bottom-top)/(y1-y0));state.zoom=clamp(state.zoom*f,.08,1.3);
+    x0=1e9;x1=-1e9;y0=1e9;y1=-1e9;
+    for(const n of ppl){const q=project(n),hw=CARD_W*q.s/2,hh=CARD_H*q.s/2;x0=Math.min(x0,q.x-hw);x1=Math.max(x1,q.x+hw);y0=Math.min(y0,q.y-hh);y1=Math.max(y1,q.y+hh);}
+    state.panX+=state.w/2-(x0+x1)/2;state.panY+=(top+bottom)/2-(y0+y1)/2;}
+  state.fitZoom=state.zoom;
+  for(const q of points){if(q.photo&&!state.photos.has(q.photo)){
+    const im=new Image();state.photos.set(q.photo,im);im.onload=draw;im.onerror=draw;im.src=blobUrl(q.photo);
+  }}draw();}
+ function project(n){const yaw=state.yaw,pitch=state.pitch;
+  const a=n.x*Math.cos(yaw)-n.z*Math.sin(yaw),z=n.x*Math.sin(yaw)+n.z*Math.cos(yaw);
+  const y=n.y*Math.cos(pitch)-z*Math.sin(pitch),depth=n.y*Math.sin(pitch)+z*Math.cos(pitch);
+  // Stronger perspective foreshortening so cards farther back shrink noticeably
+  const persp=clamp(1100/(1100+depth),.7,1.3);
+  const factor=persp*state.zoom;
+  return {x:state.w/2+state.panX+a*factor,y:state.h*.53+state.panY+y*factor,z:depth,s:factor,p:persp};}
+ function rounded(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);}
+ function background(){const w=state.w,h=state.h;
+  const sky=ctx.createLinearGradient(0,0,0,h);sky.addColorStop(0,'#a8c4b4');sky.addColorStop(.35,'#e5e7d0');sky.addColorStop(.72,'#faf0d7');sky.addColorStop(1,'#a8ba91');ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
+  const glow=ctx.createRadialGradient(w*.26,h*.14,5,w*.26,h*.14,w*.71);glow.addColorStop(0,'rgba(255,249,220,.88)');glow.addColorStop(1,'rgba(255,243,215,0)');ctx.fillStyle=glow;ctx.fillRect(0,0,w,h);
+  // Distant watercolor hills with a translucent meadow at the base.
+  for(let k=0;k<3;k++){ctx.beginPath();ctx.moveTo(0,h);for(let x=0;x<=w+25;x+=25){const yy=h*(.76+k*.06)+Math.sin(x/160+k)*20+Math.sin(x/59+k*4)*7;ctx.lineTo(x,yy);}ctx.lineTo(w,h);ctx.closePath();ctx.fillStyle=['rgba(119,152,130,.19)','rgba(120,155,120,.25)','rgba(112,147,102,.29)'][k];ctx.fill();}
+  for(let i=0;i<260;i++){const x=rand(i+50)*w,y=(.72+rand(i+300)*.27)*h;
+   ctx.strokeStyle=i%3?'rgba(75,128,91,.12)':'rgba(245,234,179,.23)';ctx.lineWidth=1+rand(i+900)*2;
+   ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+(rand(i+1100)-.5)*13,y-3-rand(i+560)*10);ctx.stroke();}
+ }
+ function branch(a,b,opacity=1){const A=project(a),B=project(b);const dx=B.x-A.x,dy=B.y-A.y;
+  const cx=A.x+dx*.46+Math.sin((A.x+B.x)*.017)*17*state.zoom;
+  const cy=A.y+dy*.42-15*state.zoom;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.quadraticCurveTo(cx,cy,B.x,B.y);
+  ctx.strokeStyle=`rgba(90,70,48,${.36*opacity})`;ctx.lineWidth=clamp(4*A.s,.9,6);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(A.x-1,A.y-1);ctx.quadraticCurveTo(cx-2,cy-2,B.x,B.y);
+  ctx.strokeStyle=`rgba(197,161,109,${.43*opacity})`;ctx.lineWidth=clamp(1.6*A.s,.4,2.3);ctx.stroke();}
+ function draw(){if(!state.w||!state.h)return;ctx.clearRect(0,0,state.w,state.h);background();state.hits=[];
+  const edges=state.links.slice().sort((a,b)=>project(b.a).z-project(a.a).z);for(const e of edges)branch(e.a,e.b);
+  const ordered=state.points.slice().sort((a,b)=>project(b).z-project(a).z);
+  for(const n of ordered){const q=project(n);if(q.x< -140||q.x>state.w+140||q.y< -80||q.y>state.h+80)continue;
+   if(n.kind==='u'){const r=clamp(5*q.s,1.5,9);const aura=ctx.createRadialGradient(q.x,q.y,1,q.x,q.y,r*3);aura.addColorStop(0,'rgba(250,227,164,.9)');aura.addColorStop(1,'rgba(250,227,164,0)');ctx.fillStyle=aura;ctx.beginPath();ctx.arc(q.x,q.y,r*3,0,Math.PI*2);ctx.fill();continue;}
+   // Cards scale down naturally with depth (q.s)
+   const w=CARD_W*q.s,h=CARD_H*q.s,x=q.x-w/2,y=q.y-h/2,rad=h/2;
+   const depthAlpha=clamp(.58+q.p*.42,.62,1);
+   ctx.save();
+   ctx.globalAlpha=depthAlpha;
+   // Soft leaf halo behind each badge gives the 3D tree a painted canopy.
+   const leaf=ctx.createRadialGradient(q.x,q.y,4*q.s,q.x,q.y,w*.68);
+   leaf.addColorStop(0,'rgba(122,159,108,.33)');leaf.addColorStop(.7,'rgba(109,151,104,.15)');leaf.addColorStop(1,'rgba(108,151,92,0)');ctx.fillStyle=leaf;ctx.beginPath();ctx.ellipse(q.x,q.y,w*.72,h*1.5,0,0,Math.PI*2);ctx.fill();
+   ctx.shadowColor='rgba(35,54,37,.22)';ctx.shadowBlur=15*q.s;ctx.shadowOffsetY=4*q.s;
+   ctx.fillStyle='rgba(252,248,231,.96)';rounded(x,y,w,h,rad);ctx.fill();ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+   ctx.strokeStyle=n.id===state.selected?'#a36a3c':'rgba(124,145,112,.72)';ctx.lineWidth=n.id===state.selected?2.6:clamp(1.35*q.p,.75,1.5);ctx.stroke();
+   const r=h*.38,ax=x+rad+1.5*q.s,ay=q.y;ctx.save();ctx.beginPath();ctx.arc(ax,ay,r,0,Math.PI*2);ctx.clip();
+   ctx.fillStyle='#d3dabc';ctx.fillRect(ax-r,ay-r,r*2,r*2);
+   const im=n.photo&&state.photos.get(n.photo);
+   if(im&&im.complete&&im.naturalWidth){const k=Math.max(2*r/im.naturalWidth,2*r/im.naturalHeight);ctx.drawImage(im,ax-im.naturalWidth*k/2,ay-im.naturalHeight*k/2,im.naturalWidth*k,im.naturalHeight*k);}
+   else if(r>=6){ctx.fillStyle='#607c63';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=`600 ${r*.85}px Georgia`;ctx.fillText(initials(n.id),ax,ay+.5);}
+   ctx.restore();
+   const tx=ax+r+7*q.s,textW=Math.max(18,x+w-tx-6*q.s);ctx.fillStyle='#354a3b';ctx.textAlign='left';ctx.textBaseline='alphabetic';
+   const fSize=Math.min(18,13.5*q.s);if(fSize<7.5){ctx.restore();state.hits.push({id:n.id,x,y,w,h,z:q.z});continue;}
+   ctx.font=`600 ${fSize}px Georgia`;let title=n.name;
+   while(ctx.measureText(title).width>textW&&title.length>4)title=title.slice(0,-2)+'…';
+   const showSub=h>=34&&(n.nick||n.years);
+   ctx.fillText(title,tx,q.y+(showSub?-1.5*q.s:fSize*.32));
+   if(showSub){ctx.font=`${Math.min(13,9.5*q.s)}px Arial`;ctx.fillStyle='#788573';
+    let sub=(n.nick||n.years).slice(0,26);
+    while(ctx.measureText(sub).width>textW&&sub.length>4)sub=sub.slice(0,-2)+'…';
+    ctx.fillText(sub,tx,q.y+clamp(13*q.s,8,19));}
+   ctx.restore();
+   state.hits.push({id:n.id,x,y,w,h,z:q.z});
+  }
+   }
+ function hit(x,y){return state.hits.slice().reverse().find(b=>x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h);}
+ const position=e=>{const r=cv.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};};
+ const touches=new Map();let pinchD=0;
+ cv.addEventListener('pointerdown',e=>{touches.set(e.pointerId,position(e));if(touches.size===2){const [a,b]=[...touches.values()];pinchD=Math.hypot(a.x-b.x,a.y-b.y);state.dragged=true;}const p=position(e);state.pressed=true;state.dragged=false;state.px=p.x;state.py=p.y;cv.setPointerCapture(e.pointerId);cv.style.cursor='grabbing';});
+ cv.addEventListener('pointermove',e=>{const p=position(e);
+  if(touches.has(e.pointerId))touches.set(e.pointerId,p);
+  if(touches.size===2&&pinchD){const [a,b]=[...touches.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);state.zoom=clamp(state.zoom*d/pinchD,.08,4);pinchD=d;draw();return;}
+  if(state.pressed){const dx=p.x-state.px,dy=p.y-state.py;if(Math.abs(dx)+Math.abs(dy)>2)state.dragged=true;
+   state.yaw+=dx*.006;state.pitch=clamp(state.pitch+dy*.003,-.65,.65);state.px=p.x;state.py=p.y;hidePortrait();draw();}
+  else{const n=hit(p.x,p.y);cv.style.cursor=n?'pointer':'grab';if(n&&P[n.id])showPortrait(n.id,e.clientX,e.clientY,true);else hidePortrait();}});
+ cv.addEventListener('pointerup',e=>{touches.delete(e.pointerId);if(touches.size<2)pinchD=0;const p=position(e);state.pressed=false;cv.style.cursor='grab';if(!state.dragged){const n=hit(p.x,p.y);if(n){state.selected=n.id;draw();openProfile(n.id,true);}}});
+ cv.addEventListener('pointercancel',e=>{touches.delete(e.pointerId);pinchD=0;state.pressed=false;cv.style.cursor='grab';});
+ cv.addEventListener('pointerleave',hidePortrait);
+ cv.addEventListener('wheel',e=>{e.preventDefault();state.zoom=clamp(state.zoom*Math.exp(-e.deltaY*.0013),.08,4);draw();},{passive:false});
+ orchard={resize,data};resize();data();
+}
+function setMode(m){mode=m;hidePortrait();document.body.classList.toggle('mode3d',m==='3d');
+ $('#v2').classList.toggle('on',m==='2d');$('#v3').classList.toggle('on',m==='3d');
+ $('#stage').style.display=m==='2d'?'':'none';$('#backdrop').style.display=m==='2d'?'':'none';
+ $('#three').style.display=m==='3d'?'block':'none';$('#fit').classList.toggle('hidden',m==='3d');
+ $('#hint').textContent=m==='2d'?'Drag to move · scroll or pinch to zoom · hover for portraits':'Drag to orbit · scroll to zoom · hover for portraits · click to open';
+ if(m==='3d'){startOrchard();requestAnimationFrame(()=>orchard?.resize());}
+}
+$('#v2').onclick=()=>setMode('2d');$('#v3').onclick=()=>setMode('3d');
+$('#fit').onclick=()=>fit(true);$('#reviewBtn').onclick=openReview;$('#unplacedBtn').onclick=()=>L&&openUnplaced();$('#addBtn').onclick=()=>personForm('new',null);
+addEventListener('resize',()=>{if(mode==='3d')orchard?.resize();});
+
+/* ORIGINAL PAINTED LANDSCAPE — soft tonal mixing, minute flecks, organic branching.
+   Deliberately independent from the prior SVG / brush-scene implementation. */
+const Paint=(()=>{
+ const W=1600,H=900,TAU=Math.PI*2;
+ function rand(seed){let s=seed>>>0;return ()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return (s>>>0)/4294967296;};}
+ const css=(s)=>s;
+ function mix(a,b,t){return a.map((v,i)=>Math.round(v+(b[i]-v)*t));}
+ function rgba(c,a=1){return `rgba(${c[0]},${c[1]},${c[2]},${a})`;}
+ const C={blue:[137,171,184],cream:[249,224,184],ivory:[251,239,216],sage:[132,158,122],olive:[90,121,91],shadow:[53,84,72],mint:[169,184,140],rose:[218,172,154],water:[142,181,188],lilac:[157,154,175],gold:[222,196,137]};
+ function ellipse(ctx,x,y,rx,ry,col,alpha=1){ctx.beginPath();ctx.ellipse(x,y,Math.max(0.1,rx),Math.max(.1,ry),0,0,TAU);ctx.fillStyle=rgba(col,alpha);ctx.fill();}
+ function soft(ctx,x,y,rx,ry,col,alpha){ctx.save();ctx.translate(x,y);ctx.scale(rx,ry);const g=ctx.createRadialGradient(0,0,.05,0,0,1);g.addColorStop(0,rgba(col,alpha));g.addColorStop(.48,rgba(col,alpha*.58));g.addColorStop(1,rgba(col,0));ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,1,0,TAU);ctx.fill();ctx.restore();}
+ function landscape(ctx,r,kind){
+   let g=ctx.createLinearGradient(0,0,0,900);
+   [[0,[139,171,186]],[.28,[184,195,191]],[.56,[229,213,182]],[.75,[209,204,163]],[1,[133,156,108]]].forEach(([t,c])=>g.addColorStop(t,rgba(c)));
+   ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+   // atmospheric washes: large, overlapping translucent fields instead of hard clouds
+   for(let i=0;i<125;i++){
+    const x=r()*1800-100,y=60+r()*565,w=110+r()*320,h=30+r()*94;
+    const col=y<300?(r()<.42?C.ivory:C.lilac):(r()<.52?C.cream:C.blue);
+    soft(ctx,x,y,w,h,col,.055+r()*.13);
+   }
+   soft(ctx,1220,240,480,290,C.cream,.46);
+   soft(ctx,1115,190,260,150,C.ivory,.30);
+   // fine cloud veils composed of overlapping transparencies
+   for(let k=0;k<14;k++){
+    const x=(k*137+200)%1750-70,y=105+(k*61)%340;
+    for(let j=0;j<18;j++) soft(ctx,x+(r()-.5)*240,y+(r()-.5)*37,34+r()*105,12+r()*37,j%5?C.ivory:C.lilac,.035+r()*.065);
+   }
+   function ridge(base,amp,col,fade,frequency){
+    ctx.beginPath();ctx.moveTo(0,H);ctx.lineTo(0,base);
+    for(let x=0;x<=W+16;x+=16){const y=base+Math.sin(x/frequency)*amp+Math.sin(x/(frequency*.41)+1.5)*amp*.32;ctx.lineTo(x,y);}
+    ctx.lineTo(W,H);ctx.closePath();ctx.fillStyle=rgba(col,fade);ctx.fill();
+   }
+   ridge(518,23,[133,151,142],.53,190);
+   ridge(567,33,[136,161,137],.67,150);
+   ridge(643,35,[115,145,110],.85,225);
+   ridge(735,35,[135,159,110],.96,220);
+   // Broad painterly patches: each patch has a radial transition; do not outline the hills.
+   for(let layer=0;layer<3;layer++)for(let i=0;i<160;i++){
+     const x=r()*1660-30,y=525+r()*450;
+     const p=(y-525)/450;
+     const col=layer===0?C.sage:layer===1?(r()<.5?C.mint:C.olive):(r()<.58?C.gold:C.shadow);
+     soft(ctx,x,y,16+r()*(45+p*100),8+r()*(13+p*35),col,layer===2?.028+r()*.06:.045+r()*.09);
+   }
+   // Mist links sky and distant landscape; important for the soft tonal transitions.
+   for(let i=0;i<46;i++)soft(ctx,r()*1650,490+r()*170,70+r()*240,18+r()*38,i%3?C.ivory:C.blue,.045+r()*.09);
+   // Painterly flowers and grass are thousands of closely-spaced very small pigment marks.
+   for(let i=0;i<6200;i++){
+     const x=r()*W,y=590+Math.sqrt(r())*320,dist=(y-590)/310;
+     const colors=[[107,135,99],[154,172,115],[181,183,130],[111,146,110],[198,184,133],[99,121,99],[214,199,151]];
+     let col=colors[Math.floor(r()*colors.length)];
+     if(r()<.012)col=r()<.5?[221,173,165]:[238,215,164];
+     ctx.save();ctx.translate(x,y);ctx.rotate(-.6+(r()-.5)*1.9);
+     ctx.fillStyle=rgba(col,.06+r()*.20);
+     ctx.beginPath();ctx.ellipse(0,0,.4+r()*(.7+dist*1.8),.5+r()*(1.6+dist*4),0,0,TAU);ctx.fill();ctx.restore();
+   }
+   // small stream, painted as color reflecting sky rather than a hard-edged vector ribbon
+   ctx.beginPath();ctx.moveTo(535,900);ctx.bezierCurveTo(590,813,730,772,930,707);ctx.bezierCurveTo(1050,667,1080,659,1120,660);
+   ctx.bezierCurveTo(1070,692,1000,704,870,756);ctx.bezierCurveTo(735,803,760,860,775,900);ctx.closePath();
+   ctx.fillStyle='rgba(155,185,176,.40)';ctx.fill();
+   for(let i=0;i<1100;i++){
+    const t=r(),y=669+t*240,cx=1080-430*t+Math.sin(t*5)*35;
+    const x=cx+(r()-.5)*(22+235*t);
+    if(x<500||x>1180)continue;
+    const col=[C.water,C.ivory,C.blue,C.olive,C.gold][Math.floor(r()*5)];
+    ellipse(ctx,x,y,1+r()*9,.3+r()*1.5,col,.08+r()*.18);
+   }
+ }
+ function branch(ctx,r,x,y,len,ang,thick,depth,seg,terminals){
+   if(depth<=0||len<6)return;
+   // All foliage grows from the exact tips of this same branch skeleton.
+   const pieces=7,points=[[x,y]], start=ang;
+   let px=x,py=y,d=ang;
+   const curl=(r()-.5)*(.47+depth*.055),wave=(r()-.5)*.28;
+   for(let j=1;j<=pieces;j++){
+     const t=j/pieces;
+     // Persistent curvature, with a smaller second winding for old, gnarled wood.
+     d=start+curl*t+Math.sin(t*Math.PI*2+wave)*(.08+depth*.009)*t+
+       Math.sin(t*Math.PI*3.3+seg*1.7)*.038;
+     px+=Math.cos(d)*len/pieces;py+=Math.sin(d)*len/pieces;
+     points.push([px,py]);
+   }
+   // Narrowing overlapping strokes follow the same curved centerline.
+   for(let j=1;j<points.length;j++){
+     const t0=(j-1)/pieces,t1=j/pieces;
+     const [x0,y0]=points[j-1],[x1,y1]=points[j];
+     const w=thick*(1-t0*.46),w2=thick*(1-t1*.46);
+     ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);
+     ctx.lineWidth=Math.max(.7,(w+w2)/2);ctx.lineJoin='round';ctx.lineCap='round';
+     ctx.strokeStyle='rgba(66,70,54,.80)';ctx.stroke();
+     ctx.beginPath();ctx.moveTo(x0-w*.15,y0);ctx.lineTo(x1-w2*.15,y1);
+     ctx.lineWidth=Math.max(.45,(w+w2)*.22);ctx.strokeStyle='rgba(168,137,100,.29)';ctx.stroke();
+   }
+   // Knotted bark rings and uneven highlights, restrained to avoid cartoon outlines.
+   if(thick>5){
+     const knot=points[2+Math.floor(r()*3)];
+     ctx.save();ctx.translate(knot[0],knot[1]);ctx.rotate(d+.3);
+     ctx.strokeStyle='rgba(47,63,49,.22)';ctx.lineWidth=Math.max(.6,thick*.075);
+     ctx.beginPath();ctx.ellipse(0,0,Math.max(1.6,thick*.17),Math.max(2.5,thick*.28),-.3,0,Math.PI*1.85);ctx.stroke();ctx.restore();
+   }
+   if(depth<=2 || thick<1.15){
+     terminals.push({x:px,y:py,ang:d,size:Math.max(16,len*.62),depth});return;
+   }
+   const lean=(r()-.5)*.27;
+   // Older limbs split unevenly; an occasional limb turns back toward the crown.
+   branch(ctx,r,px,py,len*(.69+r()*.14),d-(.25+r()*.45)+lean,thick*(.52+r()*.09),depth-1,seg+1,terminals);
+   branch(ctx,r,px,py,len*(.68+r()*.15),d+(.23+r()*.46)+lean,thick*(.51+r()*.09),depth-1,seg+1,terminals);
+   if(depth>4&&r()<.68){
+     const p=points[3],side=r()<.5?-1:1;
+     branch(ctx,r,p[0],p[1],len*(.43+r()*.21),d+side*(.58+r()*.66),thick*.36,depth-2,seg+1,terminals);
+   }
+ }
+ function tree(ctx,r,x,base,scale,kind){
+   ctx.save();ctx.translate(x,base);ctx.scale(scale,scale);
+   const hero=kind==='hero',terminals=[];
+   const len=hero?128:94;
+   soft(ctx,12,2,160,25,C.shadow,.15);
+   // Curved main stem and crown must be generated before placing any leaves.
+   branch(ctx,r,0,4,len,-Math.PI/2,hero?25:17,hero?7:6,0,terminals);
+   // Leaf masses are attached to actual tips. Neighboring tips blend into a
+   // continuous, irregular crown rather than floating in preset ovals.
+   const tips=terminals.filter(t=>t.y < -58);
+   // Small twig ends can get extreme: cap their canopy footprint while keeping
+   // their exact tip as the center, so no canopy disconnects from its branch.
+   for(let i=0;i<tips.length;i++){
+     const t=tips[i],cx=t.x,cy=t.y,rx=hero?34+r()*19:28+r()*16,ry=hero?25+r()*16:23+r()*13;
+     soft(ctx,cx+7,cy+8,rx*1.20,ry*1.28,C.shadow,.22);
+     soft(ctx,cx,cy,rx*1.29,ry*1.23,C.olive,.27);
+     soft(ctx,cx-8,cy-9,rx*1.05,ry,C.sage,.28);
+     soft(ctx,cx-15,cy-15,rx*.72,ry*.72,C.mint,.20);
+     // High-density, low-opacity marks read as soft pigment rather than dots.
+     const marks=hero?95:80;
+     for(let j=0;j<marks;j++){
+       const a=r()*TAU,rr=Math.sqrt(r())*.96;
+       const dx=Math.cos(a)*rr*rx,dy=Math.sin(a)*rr*ry;
+       const light=(-dx/rx-dy/ry)*.48+r()*.62;
+       const col=light>.57?(r()<.5?[191,202,153]:[165,190,143]):
+         light<-.13?(r()<.5?[78,109,86]:[97,124,99]):
+         [[116,147,112],[135,159,120],[155,172,133],[96,131,105]][Math.floor(r()*4)];
+       ctx.save();ctx.translate(cx+dx,cy+dy);ctx.rotate((r()-.5)*2.1);
+       ctx.fillStyle=rgba(col,.065+r()*.19);
+       ctx.beginPath();ctx.ellipse(0,0,.45+r()*1.55,.55+r()*2.35,0,0,TAU);ctx.fill();ctx.restore();
+     }
+   }
+   // Wispy edge sprays tie the individual leaf masses together gently.
+   for(let i=0;i<tips.length*16;i++){
+     const t=tips[Math.floor(r()*tips.length)];if(!t)break;
+     const xx=t.x+(r()-.5)*66, yy=t.y+(r()-.5)*46;
+     ellipse(ctx,xx,yy,.65+r()*2,.45+r()*1.8,r()<.55?C.sage:C.olive,.06+r()*.11);
+   }
+   ctx.restore();
+ }
+ function canvasTexture(ctx,r){
+   // transparent matte canvas: subpixel light/dark flecks without a hard uniform grain grid
+   for(let i=0;i<18000;i++){
+     const x=r()*1600,y=r()*900;
+     ctx.fillStyle=r()<.5?'rgba(255,248,223,.055)':'rgba(72,79,73,.032)';
+     ctx.fillRect(x,y,.35+r()*.9,.35+r()*.8);
+   }
+   const glaze=ctx.createLinearGradient(0,0,1600,900);glaze.addColorStop(0,'rgba(249,238,216,.065)');glaze.addColorStop(.55,'rgba(255,255,255,0)');glaze.addColorStop(1,'rgba(72,94,80,.045)');ctx.fillStyle=glaze;ctx.fillRect(0,0,1600,900);
+ }
+ function draw(canvas,kind){
+   if(!canvas)return;canvas.width=1600;canvas.height=900;
+   const ctx=canvas.getContext('2d',{alpha:false});const r=rand(kind==='intro'?391722:982712);
+   landscape(ctx,r,kind);
+   if(kind==='intro'){
+     tree(ctx,r,770,719,1.14,'hero');
+     tree(ctx,r,140,673,.78,'secondary');
+     tree(ctx,r,1480,681,.83,'secondary');
+   }else{
+     tree(ctx,r,95,709,.90,'secondary');
+     tree(ctx,r,1515,685,1.04,'secondary');
+   }
+   canvasTexture(ctx,r);
+ }
+ return {draw};
+})();
+Paint.draw($('#introScene'),'intro');
+Paint.draw($('#backdrop'),'backdrop');
+let introDone=false;
+function finishIntro(){introDone=true;document.body.classList.remove('intro');const it=$('#intro');it.classList.add('fade');setTimeout(()=>it.remove(),1100);schedule();}
+function walk(){const it=$('#intro');if(it.classList.contains('go'))return;it.classList.add('go');
+ const sc=$('#introScene');const rm=matchMedia('(prefers-reduced-motion:reduce)').matches;
+ if(!rm){sc.style.transformOrigin='49% 68%';sc.style.transform='scale(2.5)';setTimeout(finishIntro,1800);}else finishIntro();}
+$('#walk').onclick=walk;$('#skip').onclick=finishIntro;
+$('#introScene').addEventListener('click',walk);
+
+/* ---------- data ---------- */
+let rt=null;function schedule(){clearTimeout(rt);rt=setTimeout(()=>{if(!introDone||!loaded.people||!loaded.unions)return;
+  if(!Object.keys(P).length){showMsg('No one on the tree yet',canAdmin?'Use “+ Person” to add the first relative.':'The organizer hasn’t added anyone yet.');}else showMsg('');render();},60);}
+function subscribe(col,target,key){let timer=setTimeout(()=>{if(key&&!loaded[key])showMsg('Can’t reach the family records yet','Check your connection — this will fill in once it answers.');},10000);
+  db.collection(col).onSnapshot(snap=>{if(!snap.metadata.fromCache)clearTimeout(timer);for(const k in target)delete target[k];snap.docs.forEach(d=>{target[d.id]=d.data();});
+    if(key)loaded[key]=true;if(col==='submissions'){const n=snap.size;$('#reviewN').textContent=n;}schedule();},
+  err=>{clearTimeout(timer);if(key&&!loaded[key]){loaded[key]=true;showMsg('The family records couldn’t load','Reopen this page to try again.');}});}
+(async()=>{
+  if(!window.claude||!claude.use){if(window.DEMO_DATA){Object.assign(P,DEMO_DATA.people||{});Object.assign(U,DEMO_DATA.unions||{});Object.assign(HL,DEMO_DATA.heirlooms||{});canWrite=false;loaded.people=loaded.unions=true;schedule();}else showMsg('Open this tree on claude.ai','It reads the family records from there.');return;}
+  const [d,u,a]=await Promise.all([claude.use('db'),claude.use('user'),claude.use('assets')]);
+  db=d;user=u;assets=a;
+  if(!db){showMsg('Sign in to see the family tree','The records are shared only with family members who have access.');return;}
+  if(user){try{canAdmin=!!(await user.canEdit());}catch(e){}try{const c=await user.can('data.write');canWrite=c===null||c===undefined?null:!!c;}catch(e){}try{myId=await user.id();}catch(e){}}
+  if(canAdmin)canWrite=true;
+  $('#addBtn').classList.toggle('hidden',!canAdmin);$('#reviewBtn').classList.toggle('hidden',!canAdmin);
+  subscribe('people',P,'people');subscribe('unions',U,'unions');subscribe('heirlooms',HL,null);
+  if(canAdmin)subscribe('submissions',SUB,null);
+})();
+</script>
+</body>
+</html>

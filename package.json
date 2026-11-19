@@ -1,0 +1,11 @@
+{
+  "name": "clark-family-tree",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:local": "wrangler d1 execute clark-family-tree --local --file migrations/0001_schema.sql && wrangler d1 execute clark-family-tree --local --file migrations/0002_seed.sql",
+    "test": "node scripts/smoke-test.mjs"
+  },
+  "devDependencies": { "wrangler": "^4.0.0" }
+}

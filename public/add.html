@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Add yourself · Clark Family Tree</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/family.css">
+</head>
+<body>
+<main class="wrap">
+  <div class="top"><a href="/">See the tree</a><span id="stepN" class="hint" style="margin:0"></span></div>
+  <div class="progress"><i id="bar" style="width:0"></i></div>
+  <section class="card" id="screen" aria-live="polite"><p>Loading the family…</p></section>
+</main>
+<input type="file" id="camera" accept="image/*" capture="user" class="hidden">
+<input type="file" id="library" accept="image/*" class="hidden">
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let tree={people:{},unions:{}};
+const blank=()=>({helper:null,helperName:'',first:'',last:'',nick:'',born:'',photo:null,photoUrl:null,
+  mother:null,motherText:'',father:null,fatherText:'',spouse:null,spouseText:'',keep:{title:'',story:'',photo:null,photoUrl:null}});
+let st=blank(),step=0;
+try{st.helperName=localStorage.getItem('clarkTreeName')||'';}catch(e){}
+
+// "you" vs "they" wording depending on who is filling this in
+const W={get you(){return st.helper?'they':'you'},get your(){return st.helper?'their':'your'},get You(){return st.helper?'They':'You'},
+  get Your(){return st.helper?'Their':'Your'},get are(){return st.helper?'are they':'are you'},get were(){return st.helper?'were they':'were you'},get them(){return st.helper?(st.first||'them'):'you'}};
+
+const name=id=>{const p=tree.people[id];return p?`${p.first||''} ${p.last||''}`.trim():'';};
+function context(id){const p=tree.people[id];if(!p)return'';const u=p.parentUnion&&tree.unions[p.parentUnion];
+  const par=u?[u.a,u.b].filter(x=>tree.people[x]).map(name):[];
+  const bits=[];if(p.nick)bits.push(`“${p.nick}”`);if(par.length)bits.push('child of '+par.join(' & '));
+  else{const sp=Object.values(tree.unions).filter(x=>x.a===id||x.b===id).map(x=>x.a===id?x.b:x.a).filter(x=>tree.people[x]).map(name);if(sp.length)bits.push('married to '+sp.join(', '));}
+  if(p.died)bits.push('d. '+p.died);return bits.join(' · ');}
+const initials=id=>{const p=tree.people[id]||{};return((p.first||'?')[0]+((p.last||'')[0]||'')).toUpperCase();};
+const face=id=>{const p=tree.people[id];return `<span class="face">${p&&p.photo?`<img src="/_blob/${esc(p.photo)}" alt="">`:esc(initials(id))}</span>`;};
+
+// ---------- voice typing (where the phone supports it) ----------
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+function micButton(targetSel){if(!SR)return `<p class="hint">Tip: tap the microphone on your keyboard to speak instead of typing.</p>`;
+  return `<button type="button" class="mic" data-mic="${targetSel}">🎙 Tap to speak</button>`;}
+let rec=null;
+document.addEventListener('click',e=>{const b=e.target.closest('[data-mic]');if(!b)return;const t=$(b.dataset.mic);
+  if(rec){rec.stop();return;}
+  rec=new SR();rec.lang='en-US';rec.interimResults=false;rec.continuous=true;b.classList.add('on');b.textContent='● Listening — tap to stop';
+  rec.onresult=ev=>{for(let i=ev.resultIndex;i<ev.results.length;i++)if(ev.results[i].isFinal){t.value=(t.value?t.value.trim()+' ':'')+ev.results[i][0].transcript.trim();t.dispatchEvent(new Event('input'));}};
+  rec.onend=()=>{rec=null;b.classList.remove('on');b.textContent='🎙 Tap to speak';};rec.onerror=()=>rec&&rec.stop();rec.start();});
+
+// ---------- photos ----------
+async function shrink(file,max=1280,q=.84){try{const bmp=await createImageBitmap(file);const k=Math.min(1,max/Math.max(bmp.width,bmp.height));
+  const c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+  return await new Promise(ok=>c.toBlob(ok,'image/jpeg',q));}catch(e){return file;}}
+let photoTarget=null;
+function pickPhoto(target,camera){photoTarget=target;const i=camera?$('#camera'):$('#library');i.value='';i.click();}
+for(const sel of ['#camera','#library'])$(sel).addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;const b=await shrink(f);
+  if(photoTarget==='person'){st.photo=b;st.photoUrl&&URL.revokeObjectURL(st.photoUrl);st.photoUrl=URL.createObjectURL(b);}
+  else{st.keep.photo=b;st.keep.photoUrl&&URL.revokeObjectURL(st.keep.photoUrl);st.keep.photoUrl=URL.createObjectURL(b);}render();});
+
+// ---------- people picker ----------
+function picker(field,textField,question,hint,noneLabel){
+  const chosen=st[field];
+  const all=Object.keys(tree.people).sort((a,b)=>name(a).localeCompare(name(b)));
+  return `<h2>${question}</h2><p class="hint">${hint}</p>
+   <input class="field" id="find" placeholder="Start typing a name…" autocomplete="off">
+   <div id="list">${listHtml(all,chosen,'')}</div>
+   <button type="button" class="pick ${st[textField]?'on':''}" id="notListed"><span class="face">+</span><span><b>Not on this list</b><small>Type their name instead</small></span></button>
+   <div id="typed" class="${st[textField]?'':'hidden'}"><input class="field" id="typedName" placeholder="Their full name" value="${esc(st[textField])}"></div>
+   <button class="go" id="next">${chosen||st[textField]?'Next':noneLabel}</button>
+   <button class="link" id="back">Back</button>`;
+}
+function listHtml(ids,chosen,q){const t=q.trim().toLowerCase();
+  const hits=ids.filter(id=>!t||`${name(id)} ${tree.people[id].nick||''}`.toLowerCase().includes(t)).slice(0,40);
+  return hits.map(id=>`<button type="button" class="pick ${chosen===id?'on':''}" data-id="${esc(id)}">${face(id)}<span><b>${esc(name(id))}</b><small>${esc(context(id))}</small></span></button>`).join('')||'<p class="hint">No one by that name yet — use “Not on this list”.</p>';}
+function wirePicker(field,textField){
+  const ids=Object.keys(tree.people).sort((a,b)=>name(a).localeCompare(name(b)));
+  $('#find').addEventListener('input',e=>{$('#list').innerHTML=listHtml(ids,st[field],e.target.value);});
+  $('#list').addEventListener('click',e=>{const b=e.target.closest('[data-id]');if(!b)return;st[field]=st[field]===b.dataset.id?null:b.dataset.id;if(st[field])st[textField]='';render();});
+  $('#notListed').onclick=()=>{st[field]=null;$('#typed').classList.remove('hidden');$('#typedName').focus();$('#next').textContent='Next';};
+  $('#typedName').addEventListener('input',e=>{st[textField]=e.target.value;});
+}
+
+// ---------- the screens ----------
+const screens=[
+ {id:'who',html:()=>`<h2>Who are you adding to the tree?</h2>
+   <button class="pick ${st.helper===false?'on':''}" id="me"><span class="face">🙋</span><span><b>Myself</b><small>I'm adding my own information</small></span></button>
+   <button class="pick ${st.helper===true?'on':''}" id="other"><span class="face">🤝</span><span><b>Someone else</b><small>I'm helping a relative fill this in</small></span></button>`,
+  wire:()=>{$('#me').onclick=()=>{st.helper=false;go(1);};$('#other').onclick=()=>{st.helper=true;go(1);};}},
+ {id:'helper',skip:()=>!st.helper,html:()=>`<h2>Thank you for helping. What's your name?</h2><p class="hint">So the family organizer knows who sent this in.</p>
+   <input class="field" id="hn" value="${esc(st.helperName)}" autocomplete="name"><button class="go" id="next">Next</button><button class="link" id="back">Back</button>`,
+  wire:()=>{$('#hn').focus();},save:()=>{st.helperName=$('#hn').value.trim();try{localStorage.setItem('clarkTreeName',st.helperName);}catch(e){}},valid:()=>!!$('#hn').value.trim()||'Please type your name.'},
+ {id:'name',html:()=>`<h2>What is ${W.your} name?</h2>
+   <label class="hint">First name</label><input class="field" id="first" value="${esc(st.first)}" autocomplete="${st.helper?'off':'given-name'}">
+   <label class="hint">Last name</label><input class="field" id="last" value="${esc(st.last)}" autocomplete="${st.helper?'off':'family-name'}">
+   <label class="hint">What does the family call ${W.them}? (optional)</label><input class="field" id="nick" value="${esc(st.nick)}" placeholder="e.g. Little Mac">
+   <button class="go" id="next">Next</button><button class="link" id="back">Back</button>`,
+  wire:()=>$('#first').focus(),save:()=>{st.first=$('#first').value.trim();st.last=$('#last').value.trim();st.nick=$('#nick').value.trim();},
+  valid:()=>!!$('#first').value.trim()||'Please type a first name.'},
+ {id:'photo',html:()=>`<h2>Let's take ${W.your} picture</h2><p class="hint">Hold the phone at arm's length, in good light.</p>
+   ${st.photoUrl?`<img class="photo-preview" src="${st.photoUrl}" alt="">`:''}
+   <button class="go" id="cam">${st.photoUrl?'Take it again':'Take a picture'}</button>
+   <button class="go secondary" id="lib">Choose a photo from the phone</button>
+   <button class="go secondary" id="next">${st.photoUrl?'Next':'Skip for now'}</button><button class="link" id="back">Back</button>`,
+  wire:()=>{$('#cam').onclick=()=>pickPhoto('person',true);$('#lib').onclick=()=>pickPhoto('person',false);}},
+ {id:'born',html:()=>`<h2>What year ${W.were} born?</h2><p class="hint">Just the year. We never ask for full birthdays.</p>
+   <input class="field" id="born" inputmode="numeric" maxlength="4" placeholder="e.g. 1958" value="${esc(st.born)}">
+   <button class="go" id="next">Next</button><button class="link" id="back">Back</button>`,
+  wire:()=>$('#born').focus(),save:()=>{st.born=$('#born').value.replace(/\D/g,'').slice(0,4);},
+  valid:()=>{const v=$('#born').value.trim();return !v||/^(1[89]|20)\d\d$/.test(v)||'Please type a four-digit year, or leave it empty.';}},
+ {id:'mother',html:()=>picker('mother','motherText',`Who is ${W.your} mother?`,'Tap her name. If she isn’t listed, choose “Not on this list”.','I don’t know — skip'),wire:()=>wirePicker('mother','motherText')},
+ {id:'father',html:()=>picker('father','fatherText',`Who is ${W.your} father?`,'Tap his name. If he isn’t listed, choose “Not on this list”.','I don’t know — skip'),wire:()=>wirePicker('father','fatherText')},
+ {id:'spouse',html:()=>picker('spouse','spouseText',`Who ${st.helper?'are they':'are you'} married to?`,'If no one, just skip.','Not married — skip'),wire:()=>wirePicker('spouse','spouseText')},
+ {id:'keep',html:()=>`<h2>Is there a family keepsake with a story?</h2>
+   <p class="hint">A ring, a quilt, a Bible, a recipe, a photograph — anything that carries a memory. This is optional.</p>
+   <label class="hint">What is it?</label><input class="field" id="kt" value="${esc(st.keep.title)}" placeholder="e.g. Mama Big’s cast-iron skillet">
+   <label class="hint">The story behind it</label>${micButton('#ks')}<textarea class="field" id="ks" placeholder="Who it belonged to, how it came down, what it means…">${esc(st.keep.story)}</textarea>
+   ${st.keep.photoUrl?`<img class="photo-preview" style="border-radius:16px" src="${st.keep.photoUrl}" alt="">`:''}
+   <button class="go secondary" id="kcam">${st.keep.photoUrl?'Take another picture':'Take a picture of it'}</button>
+   <button class="go" id="next">Next</button><button class="link" id="back">Back</button>`,
+  wire:()=>{$('#kcam').onclick=()=>{screens[step].save();pickPhoto('keep',true);};},save:()=>{st.keep.title=$('#kt').value.trim();st.keep.story=$('#ks').value.trim();}},
+ {id:'review',html:()=>{const rel=(id,t)=>id?esc(name(id)):t?`${esc(t)} <span>(will be added)</span>`:'<span>Not given</span>';
+   return `<h2>Does this look right?</h2>
+   ${st.photoUrl?`<img class="photo-preview" src="${st.photoUrl}" alt="">`:''}
+   <div class="summary">
+    <div><span>Name</span><b>${esc(st.first)} ${esc(st.last)}</b>${st.nick?` “${esc(st.nick)}”`:''}</div>
+    <div><span>Born</span>${st.born?esc(st.born):'<span>Not given</span>'}</div>
+    <div><span>Mother</span>${rel(st.mother,st.motherText)}</div>
+    <div><span>Father</span>${rel(st.father,st.fatherText)}</div>
+    <div><span>Married to</span>${rel(st.spouse,st.spouseText)}</div>
+    ${st.keep.title?`<div><span>Keepsake</span><b>${esc(st.keep.title)}</b><br>${esc(st.keep.story)}</div>`:''}
+    ${st.helper?`<div><span>Sent in by</span>${esc(st.helperName)}</div>`:''}
+   </div>
+   <p id="err" class="error hidden" role="alert"></p>
+   <button class="go" id="send">Send to the family tree</button>
+   <button class="link" id="back">Go back and change something</button>`;},
+  wire:()=>{$('#send').onclick=send;}},
+ {id:'done',html:()=>`<h2>Thank you${st.helper?'':', '+esc(st.first)}!</h2>
+   <p class="big" style="font-weight:400">${esc(st.first)} will appear on the tree once the family organizer checks it.</p>
+   <button class="go" id="again">Add another person</button><a class="go secondary" href="/">See the family tree</a>`,
+  wire:()=>{$('#again').onclick=()=>{const keepHelper=st.helper,hn=st.helperName;st=blank();st.helper=keepHelper;st.helperName=hn;go(keepHelper?2:0);};}},
+];
+function visible(){return screens.filter(s=>!(s.skip&&s.skip()));}
+function go(i){step=Math.max(0,Math.min(screens.length-1,i));if(screens[step].skip&&screens[step].skip())step+=(i>=step?1:-1);render();window.scrollTo(0,0);}
+function render(){const s=screens[step];$('#screen').innerHTML=s.html();
+  const vis=visible(),idx=vis.indexOf(s);$('#bar').style.width=Math.round(idx/(vis.length-1)*100)+'%';
+  $('#stepN').textContent=s.id==='done'?'':`Step ${idx+1} of ${vis.length-1}`;
+  const nx=$('#next'),bk=$('#back');
+  if(nx)nx.onclick=()=>{if(s.valid){const v=s.valid();if(v!==true&&typeof v==='string'){alertMsg(v);return;}}s.save&&s.save();go(next(step));};
+  if(bk)bk.onclick=()=>{s.save&&s.save();go(prev(step));};
+  s.wire&&s.wire();}
+function next(i){let j=i+1;while(screens[j]&&screens[j].skip&&screens[j].skip())j++;return j;}
+function prev(i){let j=i-1;while(j>0&&screens[j].skip&&screens[j].skip())j--;return j;}
+function alertMsg(m){let e=$('#screen .error');if(!e){e=document.createElement('p');e.className='error';e.setAttribute('role','alert');$('#screen').insertBefore(e,$('#next'));}e.textContent=m;}
+
+async function upload(blob){if(!blob)return null;const r=await fetch('/api/photos',{method:'POST',headers:{'content-type':blob.type||'image/jpeg'},body:blob,credentials:'same-origin'});
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'The photo didn’t upload.');return d.id;}
+async function send(){const b=$('#send');b.disabled=true;b.textContent='Sending…';$('#err').classList.add('hidden');
+  try{
+    const photo=await upload(st.photo),kphoto=await upload(st.keep.photo);
+    const body={kind:'intake',submitter:st.helper?st.helperName:`${st.first} ${st.last}`.trim(),helper:!!st.helper,
+      person:{first:st.first,last:st.last,nick:st.nick,born:st.born,photo},
+      parents:[st.mother,st.father].filter(Boolean),mother:st.mother,father:st.father,motherText:st.mother?'':st.motherText,fatherText:st.father?'':st.fatherText,
+      spouse:st.spouse,spouseText:st.spouse?'':st.spouseText,
+      heirloom:st.keep.title?{title:st.keep.title,story:st.keep.story,photo:kphoto}:null};
+    const r=await fetch('/api/submissions',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),credentials:'same-origin'});
+    const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'That didn’t send. Please try again.');
+    go(screens.findIndex(s=>s.id==='done'));
+  }catch(e){$('#err').textContent=e.message+' Check the internet connection and tap Send again.';$('#err').classList.remove('hidden');b.disabled=false;b.textContent='Send to the family tree';}}
+
+(async()=>{const r=await fetch('/api/tree',{credentials:'same-origin'});
+  if(r.status===401){location.href='/join?next=/add';return;}
+  if(r.ok)tree=await r.json();render();})();
+</script>
+</body>
+</html>

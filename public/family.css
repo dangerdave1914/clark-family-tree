@@ -1,0 +1,40 @@
+/* Shared look for the join, add-yourself and organizer pages: large, calm, easy to read. */
+:root{--paper:#f8f5eb;--card:#fffdf6;--ink:#2f362b;--muted:#646b59;--line:#d8d4c4;--accent:#4f6b52;--accent-ink:#fff;--soft:#ecebdd;--warn:#a5651f;--danger:#a3412b}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -10%,#fcf2da 0%,#e6e8d6 45%,#c9d6c3 100%) fixed;color:var(--ink);font:19px/1.5 Inter,system-ui,sans-serif}
+.wrap{max-width:620px;margin:0 auto;padding:28px 18px 60px}
+h1{font:500 clamp(34px,8vw,48px)/1.05 Fraunces,Georgia,serif;margin:8px 0 4px;letter-spacing:-.02em;text-align:center}
+.lede{font:italic 400 20px Fraunces,Georgia,serif;text-align:center;color:var(--muted);margin:0 0 22px}
+h2{font:500 28px/1.2 Fraunces,Georgia,serif;margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 10px 34px rgba(43,52,39,.12);margin-bottom:16px}
+.big{font-size:22px;font-weight:500;margin:0 0 14px;display:block}
+.hint{color:var(--muted);font-size:17px;margin:6px 0 14px}
+.field{width:100%;font:inherit;font-size:22px;padding:14px 16px;border:2px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);margin-bottom:12px}
+.field:focus{outline:none;border-color:var(--accent)}
+textarea.field{min-height:150px;resize:vertical}
+.go{display:block;width:100%;text-align:center;font:600 21px Inter,sans-serif;padding:17px 20px;border-radius:16px;border:2px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer;text-decoration:none;margin-top:10px}
+.go.secondary{background:transparent;color:var(--accent)}
+.go:disabled{opacity:.55;cursor:default}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.link{background:none;border:0;color:var(--accent);font:inherit;font-size:18px;text-decoration:underline;cursor:pointer;padding:10px 0}
+.error{color:var(--danger);font-weight:500}
+.hidden{display:none!important}
+.progress{height:8px;background:rgba(79,107,82,.15);border-radius:99px;overflow:hidden;margin:0 0 18px}
+.progress i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .3s}
+.pick{display:flex;align-items:center;gap:14px;width:100%;text-align:left;font:inherit;background:#fff;border:2px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:10px;cursor:pointer;color:var(--ink)}
+.pick:hover,.pick:focus{border-color:var(--accent);outline:none}
+.pick.on{border-color:var(--accent);background:#eef3e8}
+.pick b{display:block;font-size:20px}
+.pick small{display:block;color:var(--muted);font-size:16px}
+.face{width:52px;height:52px;border-radius:50%;background:#dfe4cc;display:flex;align-items:center;justify-content:center;font:600 18px Fraunces,Georgia,serif;color:#5d775f;flex:none;overflow:hidden}
+.face img{width:100%;height:100%;object-fit:cover}
+.photo-preview{width:180px;height:180px;border-radius:50%;object-fit:cover;display:block;margin:6px auto 12px;border:4px solid #fff;box-shadow:0 4px 18px rgba(0,0,0,.15)}
+.mic{display:inline-flex;align-items:center;gap:8px;font:600 18px Inter,sans-serif;padding:10px 16px;border-radius:99px;border:2px solid var(--accent);background:#fff;color:var(--accent);cursor:pointer;margin-bottom:10px}
+.mic.on{background:var(--danger);border-color:var(--danger);color:#fff}
+.summary div{padding:10px 0;border-bottom:1px solid var(--line)}
+.summary div:last-child{border:0}
+.summary span{display:block;color:var(--muted);font-size:15px}
+.badge{display:inline-block;min-width:22px;padding:0 7px;border-radius:99px;background:var(--warn);color:#fff;font-size:14px;font-weight:600;text-align:center}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.top a{color:var(--accent);font-size:16px}
