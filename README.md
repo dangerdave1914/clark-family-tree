@@ -11,7 +11,7 @@ Nothing a family member sends appears on the tree until the organizer approves i
 
 ## How it's built
 
-- One Cloudflare Worker (`src/worker.js`) serves the pages in `public/` and a small API.
+- One Cloudflare Worker (`src/worker.js`) serves the pages in `public/` and a small API. The pages are bundled into the Worker itself (the `rules` in `wrangler.jsonc`), so a deploy is a single upload — there's no separate static-assets step to go missing.
 - A Cloudflare D1 database (`clark-family-tree`) holds people, marriages ("unions"), keepsakes, submissions and photos. Phones shrink photos before uploading, so they fit in the database.
 - `public/index.html` is the same tree page as the claude.ai version; `public/shim.js` connects it to this API instead.
 

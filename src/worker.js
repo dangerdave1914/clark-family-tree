@@ -12,6 +12,24 @@
 //   FAMILY_CODE  — the code inside the family link / QR code
 //   ADMIN_TOKEN  — the organizer's password for /admin
 
+// The pages are built into the Worker (no separate static-assets upload to go missing).
+import indexHtml from '../public/index.html';
+import joinHtml from '../public/join.html';
+import addHtml from '../public/add.html';
+import adminHtml from '../public/admin.html';
+import familyCss from '../public/family.css';
+import shimJs from '../public/shim.js';
+
+const PAGES = {
+  '/': [indexHtml, 'text/html; charset=utf-8'], '/index.html': [indexHtml, 'text/html; charset=utf-8'],
+  '/join': [joinHtml, 'text/html; charset=utf-8'], '/join.html': [joinHtml, 'text/html; charset=utf-8'],
+  '/add': [addHtml, 'text/html; charset=utf-8'], '/add.html': [addHtml, 'text/html; charset=utf-8'],
+  '/admin': [adminHtml, 'text/html; charset=utf-8'], '/admin.html': [adminHtml, 'text/html; charset=utf-8'],
+  '/family.css': [familyCss, 'text/css; charset=utf-8'],
+  '/shim.js': [shimJs, 'text/javascript; charset=utf-8'],
+};
+const PAGE_HEADERS = { 'cache-control': 'no-cache', 'x-content-type-options': 'nosniff', 'referrer-policy': 'same-origin', 'x-robots-tag': 'noindex' };
+
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' };
 const json = (data, status = 200, headers = {}) => new Response(JSON.stringify(data), { status, headers: { ...JSON_HEADERS, ...headers } });
 const fail = (message, status = 400) => json({ error: message }, status);
@@ -300,8 +318,9 @@ export default {
       }
 
       if (path.startsWith('/api/')) return fail('Not found', 404);
-      // Anything else that isn't a static file
-      return env.ASSETS.fetch(request);
+      const page = PAGES[path] || PAGES[path.replace(/\/$/, '')];
+      if (page && (method === 'GET' || method === 'HEAD')) return new Response(method === 'HEAD' ? null : page[0], { headers: { 'content-type': page[1], ...PAGE_HEADERS } });
+      return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain' } });
     } catch (err) {
       return fail(err && err.message ? err.message : 'Something went wrong.', 500);
     }

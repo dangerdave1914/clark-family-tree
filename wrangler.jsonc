@@ -1,15 +1,12 @@
 {
   // Cloudflare Worker for the Clark Family Tree.
-  "$schema": "node_modules/wrangler/config-schema.json",
+  // The pages in public/ are bundled into the Worker as text (see "rules"), so nothing else needs uploading.
   "name": "clark-family-tree",
   "main": "src/worker.js",
   "compatibility_date": "2025-09-01",
-  "assets": {
-    "directory": "./public",
-    "binding": "ASSETS",
-    "html_handling": "drop-trailing-slash",
-    "not_found_handling": "none"
-  },
+  "rules": [
+    { "type": "Text", "globs": ["**/*.html", "**/*.css", "**/public/*.js"], "fallthrough": false }
+  ],
   "d1_databases": [
     {
       "binding": "DB",
