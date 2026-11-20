@@ -1232,9 +1232,14 @@ const Paint=(()=>{
    const c=[[244,124,170],[248,164,140],[252,206,214],[232,96,148],[250,246,236]][Math.floor(r()*5)];const tilt=.55+r()*.35,rot=r()*TAU;
    dab(ctx,x+size*.1,y+size*.9,size*.06,size*.9,(r()-.5)*.3,[60,110,52],.9); // stem
    ctx.save();ctx.translate(x,y);ctx.scale(1,tilt);
-   for(let p=0;p<8;p++){const a=rot+p*TAU/8;const px=Math.cos(a)*size*.55,py=Math.sin(a)*size*.55;
-     dab(ctx,px,py,size*.55,size*.24,a,mix(c,[120,40,80],.18),.95);dab(ctx,px*.9,py*.9,size*.45,size*.15,a,mix(c,[255,255,255],.25),.75);}
-   disc(ctx,0,0,size*.22,[246,190,64],1);for(let k=0;k<14;k++){const a=r()*TAU,d=r()*size*.18;disc(ctx,Math.cos(a)*d,Math.sin(a)*d,size*.04,[200,120,40],.8);}
+   // cosmos petals: broad, notched at the tip, narrowing to the centre (petal shape borrowed from Gemini's version)
+   for(let p=0;p<8;p++){ctx.save();ctx.rotate(rot+p*TAU/8+(r()-.5)*.12);const L=size*(1.0+r()*.12);
+     ctx.beginPath();ctx.moveTo(0,0);ctx.bezierCurveTo(-L*.30,-L*.32,-L*.36,-L*.86,-L*.12,-L);ctx.lineTo(0,-L*.92);ctx.lineTo(L*.12,-L);
+     ctx.bezierCurveTo(L*.36,-L*.86,L*.30,-L*.32,0,0);
+     const g=ctx.createLinearGradient(0,0,0,-L);g.addColorStop(0,rgba(mix(c,[120,40,80],.25)));g.addColorStop(.6,rgba(c));g.addColorStop(1,rgba(mix(c,[255,255,255],.25)));
+     ctx.fillStyle=g;ctx.fill();ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=size*.03;ctx.stroke();
+     ctx.strokeStyle=rgba(mix(c,[110,30,70],.35),.35);ctx.lineWidth=size*.02;ctx.beginPath();ctx.moveTo(0,-L*.18);ctx.lineTo(0,-L*.8);ctx.stroke();ctx.restore();}
+   disc(ctx,0,0,size*.24,[96,52,30],.9);disc(ctx,-size*.03,-size*.03,size*.18,[246,190,64],1);for(let k=0;k<14;k++){const a=r()*TAU,d=r()*size*.18;disc(ctx,Math.cos(a)*d,Math.sin(a)*d,size*.04,[200,120,40],.8);}
    ctx.restore();}
 
  /* ---------- the great oak ---------- */
