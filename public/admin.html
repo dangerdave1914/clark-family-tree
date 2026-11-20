@@ -30,6 +30,7 @@ body{font-size:17px}
 #qr{display:flex;justify-content:center;padding:14px;background:#fff;border-radius:16px;margin:10px 0}
 .printcard{text-align:center}
 @media print{body{background:#fff}.noprint{display:none!important}.card{box-shadow:none;border:0}.printcard h2{font-size:34px}}
+.galRev{display:flex;gap:10px;overflow-x:auto;padding:6px 0}.galRev figure{margin:0;flex:none;width:120px;font-size:13px}.galRev img,.galRev .miss{width:120px;height:120px;object-fit:cover;border-radius:10px;display:block;background:#ddd}.galRev figcaption{margin-top:4px;line-height:1.3}
 </style>
 </head>
 <body>
@@ -93,6 +94,10 @@ async function describe(s){const p=s.payload;let img=null,html='';
      <p>${esc(name(p.anchor))} is ${esc(R[p.rel]||p.rel)} ${p.target?esc(name(p.target)):''}${p.text?` — “${esc(p.text)}”`:''}</p>`;}
   else if(s.kind==='heirloom'){const d=p.data||{};img=await photo(d.photo);
     html=`<h3>Keepsake for ${esc(name(p.anchor||d.person))}</h3><div class="meta">from ${esc(s.submitter||'a family member')}</div><div class="keep"><div><b>${esc(d.title)}</b><br>${esc(d.story||'')}</div></div>`;}
+  else if(s.kind==='gallery'){const items=p.items||[];const L={baby:'Baby',child:'Childhood',teen:'Teen years',school:'School & sports',young:'Young adult',wedding:'Wedding',family:'Raising a family',work:'Work & service',later:'Later years',other:'Other'};
+    const urls=await Promise.all(items.map(i=>photo(i.photo)));
+    html=`<h3>${items.length} photo${items.length===1?'':'s'} of ${esc(name(p.anchor))}</h3><div class="meta">from ${esc(s.submitter||'a family member')}</div>
+     <div class="galRev">${items.map((it,k)=>`<figure>${urls[k]?`<img src="${urls[k]}" alt="">`:'<div class="miss">missing</div>'}<figcaption><b>${esc(L[it.stage]||'Other')}</b>${it.year?' · '+esc(it.year):''}${it.caption?`<br>${esc(it.caption)}`:''}</figcaption></figure>`).join('')}</div>`;}
   return {img,html};}
 
 async function load(){

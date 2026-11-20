@@ -52,7 +52,10 @@ const newId = (prefix) => `${prefix}-${crypto.randomUUID().replace(/-/g, '').sli
 const PERSON_FIELDS = ['first', 'last', 'nick', 'born', 'died', 'notes', 'verify', 'photo'];
 const MAX_PHOTO_BYTES = 1_500_000; // the pages shrink photos before upload; this is a safety cap
 const MAX_SUBMISSION_BYTES = 20_000;
-const SUBMISSION_KINDS = new Set(['intake', 'person', 'edit', 'heirloom', 'link']);
+const SUBMISSION_KINDS = new Set(['intake', 'person', 'edit', 'heirloom', 'link', 'gallery']);
+// Stages of life a gallery photo can be filed under (keep in step with the tree page).
+const STAGES = new Set(['baby', 'child', 'teen', 'school', 'young', 'wedding', 'family', 'work', 'later', 'other']);
+const MAX_GALLERY_BATCH = 24;
 
 // ---------- auth helpers ----------
 async function hmacHex(secret, message) {
@@ -97,16 +100,18 @@ function personRow(r) {
   return o;
 }
 async function loadTree(env) {
-  const [p, u, h] = await env.DB.batch([
+  const [p, u, h, g] = await env.DB.batch([
     env.DB.prepare('SELECT * FROM people'),
     env.DB.prepare('SELECT * FROM unions'),
     env.DB.prepare('SELECT * FROM heirlooms ORDER BY created_at'),
+    env.DB.prepare('SELECT * FROM gallery ORDER BY created_at'),
   ]);
-  const people = {}, unions = {}, heirlooms = {};
+  const people = {}, unions = {}, heirlooms = {}, gallery = {};
   for (const r of p.results) people[r.id] = personRow(r);
   for (const r of u.results) { const o = { a: r.a, b: r.b }; if (r.notes) o.notes = r.notes; if (r.ord !== null) o.order = r.ord; unions[r.id] = o; }
   for (const r of h.results) heirlooms[r.id] = { person: r.person, title: r.title, story: r.story, photo: r.photo, by: r.attested_by, at: r.created_at };
-  return { people, unions, heirlooms };
+  for (const r of g.results) gallery[r.id] = { person: r.person, photo: r.photo, stage: r.stage, year: r.year, caption: r.caption, by: r.added_by, at: r.created_at };
+  return { people, unions, heirlooms, gallery };
 }
 async function getPerson(env, id) { return id ? env.DB.prepare('SELECT * FROM people WHERE id=?').bind(id).first() : null; }
 async function getUnion(env, id) { return id ? env.DB.prepare('SELECT * FROM unions WHERE id=?').bind(id).first() : null; }
@@ -240,6 +245,7 @@ async function mergePeople(env, keepId, dupId) {
     }
   }
   await env.DB.prepare('UPDATE heirlooms SET person=? WHERE person=?').bind(keepId, dupId).run();
+  await env.DB.prepare('UPDATE gallery SET person=? WHERE person=?').bind(keepId, dupId).run();
   await env.DB.prepare('DELETE FROM people WHERE id=?').bind(dupId).run();
   return 'merged';
 }
@@ -350,6 +356,19 @@ async function approveSubmission(env, sub) {
     await approvePhotos(env, [d.photo]);
     return person;
   }
+  if (sub.kind === 'gallery') {
+    const person = s.anchor;
+    if (!(await getPerson(env, person))) throw new Error('That person is no longer on the tree.');
+    const items = (Array.isArray(s.items) ? s.items : []).slice(0, MAX_GALLERY_BATCH).filter((i) => i && typeof i.photo === 'string' && /^[\w-]{1,80}$/.test(i.photo));
+    if (!items.length) throw new Error('No photos in this entry.');
+    let t = Date.now();
+    for (const i of items) {
+      await env.DB.prepare('INSERT INTO gallery (id,person,photo,stage,year,caption,added_by,created_at) VALUES (?,?,?,?,?,?,?,?)')
+        .bind(newId('g'), person, i.photo, STAGES.has(i.stage) ? i.stage : 'other', clean(i.year, 10), clean(i.caption, 300), who, t++).run();
+    }
+    await approvePhotos(env, items.map((i) => i.photo));
+    return person;
+  }
   throw new Error('Unknown entry type.');
 }
 
@@ -358,6 +377,7 @@ const WRITABLE = {
   people: { cols: ['first', 'last', 'nick', 'born', 'died', 'notes', 'verify', 'photo', 'parentUnion', 'order'], map: { parentUnion: 'parent_union', order: 'ord' } },
   unions: { cols: ['a', 'b', 'notes', 'order'], map: { order: 'ord' } },
   heirlooms: { cols: ['person', 'title', 'story', 'photo', 'by', 'at'], map: { by: 'attested_by', at: 'created_at' } },
+  gallery: { cols: ['person', 'photo', 'stage', 'year', 'caption', 'by', 'at'], map: { by: 'added_by', at: 'created_at' } },
 };
 async function adminWrite(env, op) {
   const spec = WRITABLE[op.col];

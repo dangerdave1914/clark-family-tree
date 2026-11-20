@@ -17,7 +17,7 @@
 
   // ---- tree data, shared by every "collection" listener ----
   let tree = null, loading = null;
-  const listeners = { people: [], unions: [], heirlooms: [], submissions: [] };
+  const listeners = { people: [], unions: [], heirlooms: [], gallery: [], submissions: [] };
   function snapshot(col) {
     const obj = (tree && tree[col]) || {};
     const docs = Object.entries(obj).map(([id, v]) => ({ id, exists: true, data: () => v, metadata: { fromCache: false, hasPendingWrites: false } }));
@@ -37,8 +37,8 @@
   }
   function ensureLoaded() { if (!loading) loading = refresh(); return loading; }
 
-  const COLLECTIONS = new Set(['people', 'unions', 'heirlooms']);
-  const genId = (col) => ({ people: 'p', unions: 'u', heirlooms: 'h', submissions: 's' }[col] || 'x') + '-' + crypto.randomUUID().replace(/-/g, '').slice(0, 14);
+  const COLLECTIONS = new Set(['people', 'unions', 'heirlooms', 'gallery']);
+  const genId = (col) => ({ people: 'p', unions: 'u', heirlooms: 'h', gallery: 'g', submissions: 's' }[col] || 'x') + '-' + crypto.randomUUID().replace(/-/g, '').slice(0, 14);
 
   async function write(col, op, id, data) {
     if (!COLLECTIONS.has(col)) throw new Error('Not allowed.');

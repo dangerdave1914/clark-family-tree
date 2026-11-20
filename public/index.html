@@ -303,6 +303,42 @@ html[data-theme=dark] #installTip{background:rgba(24,27,44,.97);border-color:#3d
 @media (max-width:380px){#dock .btn,#dock .seg button{font-size:10px!important;letter-spacing:-.1px}}
 /* opened from the home screen: no browser bar, so nothing to nag about */
 @media (display-mode:standalone){#installTip{display:none!important}}
+
+/* ---------- photo gallery: "Through the years" ---------- */
+.galh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}.galh h3{margin:0}
+.btn.small{padding:6px 11px;font-size:13px}
+.strip{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.strip::-webkit-scrollbar{height:6px}.strip::-webkit-scrollbar-thumb{background:rgba(120,120,100,.35);border-radius:3px}
+.thumb{flex:none;width:112px;scroll-snap-align:start;border:0;padding:0;background:none;cursor:pointer;text-align:left;font:inherit;color:inherit}
+.thumb img{width:112px;height:112px;object-fit:cover;border-radius:12px;display:block;box-shadow:0 2px 8px rgba(40,40,30,.18);background:#ddd8c6}
+.thumb span{display:block;font-size:12px;line-height:1.25;margin-top:5px;color:var(--muted)}.thumb b{display:block;color:var(--ink);font-weight:600;font-size:12.5px}
+.galEmpty{border:1.5px dashed var(--border);border-radius:12px;padding:14px;color:var(--muted);font-size:14px;line-height:1.45}
+#lightbox{position:fixed;inset:0;z-index:60;background:#0c0d13;display:none;flex-direction:column;color:#f5efe2;touch-action:none;user-select:none;-webkit-user-select:none}
+#lightbox.open{display:flex}
+#lightbox .lbTop{display:flex;align-items:center;justify-content:space-between;padding:max(12px,env(safe-area-inset-top)) 14px 8px;font-size:14px;color:#cfc6b4}
+#lightbox .lbX{background:rgba(255,255,255,.12);border:0;color:#fff;width:44px;height:44px;border-radius:50%;font-size:24px;line-height:44px;cursor:pointer}
+#lightbox .lbImg{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+#lightbox .lbImg img{max-width:100%;max-height:100%;object-fit:contain;transition:transform .25s ease,opacity .2s;-webkit-user-drag:none;pointer-events:none}
+#lightbox .lbNav{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;font-size:26px;cursor:pointer}
+#lightbox .lbPrev{left:10px}#lightbox .lbNext{right:10px}
+#lightbox .lbCap{padding:12px 18px calc(16px + env(safe-area-inset-bottom));text-align:center}
+#lightbox .lbStage{font:600 12px Inter;letter-spacing:.08em;text-transform:uppercase;color:#f0b27a}
+#lightbox .lbText{font:italic 18px/1.45 'Cormorant Garamond',Georgia,serif;margin-top:4px;color:#f5efe2}
+#lightbox .lbBy{font-size:12px;color:#a9a091;margin-top:4px}
+#lightbox .lbAct{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+#lightbox .lbAct .btn{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.2)}
+@media (hover:none){#lightbox .lbNav{display:none}}
+.gpick{display:flex;align-items:center;justify-content:center;gap:10px;border:2px dashed var(--accent2);border-radius:14px;padding:18px;font-size:17px;font-weight:600;color:var(--accent2);cursor:pointer;text-align:center}
+.gpick input{display:none}
+.grow{display:grid;grid-template-columns:76px 1fr 30px;gap:10px;align-items:start;border:1px solid var(--border);border-radius:12px;padding:10px;margin-top:10px}
+.grow img{width:76px;height:76px;object-fit:cover;border-radius:9px}
+.grow .gf{display:grid;grid-template-columns:78px 1fr;gap:6px}.grow .gf select{grid-column:1/3}
+.grow select,.grow input{font-size:16px;padding:8px;border-radius:8px;border:1px solid var(--border);width:100%;box-sizing:border-box;background:var(--card,#fff);color:var(--ink)}
+.grow .gx{border:0;background:none;font-size:22px;color:var(--muted);cursor:pointer;padding:0}
+html[data-theme=dark] .thumb img{background:#2a2f45}
+html[data-theme=dark] .grow{border-color:#3d4460}
+html[data-theme=dark] .galEmpty{border-color:#3d4460;color:#d9cfbd}
+html[data-theme=dark] .grow select,html[data-theme=dark] .grow input{background:#1d2134;color:#fbf4e6;border-color:#3d4460}
 </style>
 </head>
 <body class="intro">
@@ -342,7 +378,13 @@ const PALETTE=['#5f9d52','#86bd68','#d98fa0','#7aa7c7','#c9a24a','#9a7bc0'];
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let db=null,user=null,assets=null,canAdmin=false,canWrite=null,myId=null;
-let P={},U={},HL={},SUB={};
+let P={},U={},HL={},GL={},SUB={};
+// Stages of life for gallery photos (keep in step with STAGES in the worker)
+const STAGES=[['baby','Baby'],['child','Childhood'],['teen','Teen years'],['school','School & sports'],['young','Young adult'],['wedding','Wedding'],['family','Raising a family'],['work','Work & service'],['later','Later years'],['other','Other']];
+const STAGE_LABEL=Object.fromEntries(STAGES),STAGE_ORD=Object.fromEntries(STAGES.map(([k],i)=>[k,i]));
+// A person's photos in life order: stage first, then year, then when they were added
+function galleryOf(id){return Object.entries(GL).filter(([,g])=>g.person===id&&g.photo)
+  .sort((a,b)=>(STAGE_ORD[a[1].stage]??99)-(STAGE_ORD[b[1].stage]??99)||(parseInt(a[1].year)||9999)-(parseInt(b[1].year)||9999)||(a[1].at||0)-(b[1].at||0));}
 let IDX=null,L=null,firstRender=true,sel=null,mode='2d',Graph=null;
 const view={x:0,y:0,k:1};
 const loaded={people:false,unions:false};
@@ -592,6 +634,7 @@ async function openProfile(id,silent){if(!P[id])return;sel=id;const p=P[id],r=re
      <button class="close" data-act="close" aria-label="Close">×</button></div>
    ${p.verify?`<div class="verify"><b>Needs checking:</b> ${esc(p.verify)}</div>`:''}
    ${p.notes?`<div class="notes">${esc(p.notes)}</div>`:''}
+   ${gallerySection(id,canWrite!==false)}
    <div class="sec"><h3>Parents</h3>${r.pu&&!r.parents.length?`<div class="none">${esc(U[r.pu].notes||'Parents unknown')}</div>`:chips(r.parents)}</div>
    <div class="sec"><h3>Spouse${spouses.length>1?'s':''}</h3>${chips(spouses)}</div>
    <div class="sec"><h3>Children</h3>${chips(r.children)}${unknownKids.length?'<div class="none" style="margin-top:4px">Some with other parent not recorded</div>':''}</div>
@@ -605,11 +648,17 @@ async function openProfile(id,silent){if(!P[id])return;sel=id;const p=P[id],r=re
    </div>`;
   $('#drawer').classList.add('open');
   if(!silent&&mode==='2d')centerOn(id);}
+function gallerySection(id,canAdd){const gs=galleryOf(id);const first=esc(P[id].first||'them');
+  return `<div class="sec"><div class="galh"><h3>Through the years${gs.length?` · ${gs.length}`:''}</h3>${canAdd?`<button class="btn small" data-act="photos">+ Add photos</button>`:''}</div>
+   ${gs.length?`<div class="strip">${gs.map(([gid,g],i)=>`<button class="thumb" data-lb="${i}" aria-label="Open photo ${i+1}"><img loading="lazy" src="${esc(blobUrl(g.photo))}" alt="${esc(g.caption||STAGE_LABEL[g.stage]||'Photo')}">
+     <span><b>${esc(STAGE_LABEL[g.stage]||'Photo')}</b>${esc([g.year,g.caption].filter(Boolean).join(' · '))}</span></button>`).join('')}</div>`
+   :`<div class="galEmpty">No photos of ${first} yet. Add baby pictures, school days, the wedding, the grandkids — every stage of life.</div>`}</div>`;}
 function closeDrawer(){$('#drawer').classList.remove('open');sel=null;document.querySelectorAll('.node.sel').forEach(n=>n.classList.remove('sel'));}
 $('#drawer').addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){openProfile(g.dataset.go);return;}
+  const lb=e.target.closest('[data-lb]');if(lb){Lightbox.open(sel,+lb.dataset.lb);return;}
   const a=e.target.closest('[data-act]');if(!a)return;const act=a.dataset.act;
   if(act==='close')closeDrawer();else if(act==='relative')personForm('relative',sel);else if(act==='edit')personForm('edit',sel);
-  else if(act==='heirloom')heirloomForm(sel);else if(act==='link')linkForm(sel);else if(act==='remove')removeForm(sel);});
+  else if(act==='heirloom')heirloomForm(sel);else if(act==='photos')galleryForm(sel);else if(act==='link')linkForm(sel);else if(act==='remove')removeForm(sel);});
 
 /* ---------- modal & forms ---------- */
 function modal(html,onSubmit){$('#mbox').innerHTML=html;$('#modal').classList.add('open');const f=$('#mbox form');
@@ -618,7 +667,7 @@ function modal(html,onSubmit){$('#mbox').innerHTML=html;$('#modal').classList.ad
   $('#mbox').querySelectorAll('[data-cancel]').forEach(b=>b.addEventListener('click',closeModal));}
 function closeModal(){$('#modal').classList.remove('open');$('#mbox').innerHTML='';}
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
-addEventListener('keydown',e=>{if(e.key==='Escape'){if($('#modal').classList.contains('open'))closeModal();else closeDrawer();}});
+addEventListener('keydown',e=>{if(Lightbox.isOpen()){if(e.key==='Escape')Lightbox.close();else if(e.key==='ArrowLeft')Lightbox.step(-1);else if(e.key==='ArrowRight')Lightbox.step(1);return;}if(e.key==='Escape'){if($('#modal').classList.contains('open'))closeModal();else closeDrawer();}});
 
 const personFields=(p={})=>`
   <div class="row"><div class="f"><label>First name</label><input name="first" required value="${esc(p.first)}"></div><div class="f"><label>Last name</label><input name="last" value="${esc(p.last)}"></div></div>
@@ -674,6 +723,71 @@ function heirloomForm(pid){modal(`<form><h2>Add an heirloom</h2><p class="lead">
   <div class="actions"><button type="submit" class="btn primary">${canAdmin?'Save heirloom':'Submit for review'}</button><button type="button" class="btn ghost" data-cancel>Cancel</button></div></form>`,
   async fd=>{const h={person:pid,title:fd.get('title').trim(),story:(fd.get('story')||'').trim(),by:myId||null,at:Date.now()};const ph=await upload(fd.get('photo'));if(ph)h.photo=ph;
     if(canAdmin){await db.collection('heirlooms').add(h);toast('Heirloom saved.');}else await submit({kind:'heirloom',anchor:pid,data:h});});}
+
+/* ---------- photo gallery: add photos ---------- */
+function galleryForm(pid){const first=P[pid].first||fullName(pid);let rows=[];
+  const opts=sel=>STAGES.map(([k,l])=>`<option value="${k}"${k===sel?' selected':''}>${esc(l)}</option>`).join('');
+  modal(`<form><h2>Photos of ${esc(first)}</h2><p class="lead">Pick one or many. For each, say which stage of life it’s from — a year helps too.${canAdmin?'':' Photos are reviewed before they appear.'}</p>
+   <div class="f"><label>These photos are mostly from</label><select id="gDefault">${opts('other')}</select></div>
+   <label class="gpick"><input type="file" id="gFiles" accept="image/*" multiple>📷 Choose photos</label>
+   <div id="gRows"></div>
+   <div class="actions"><button type="submit" class="btn primary" id="gGo" disabled>${canAdmin?'Add to gallery':'Submit for review'}</button><button type="button" class="btn ghost" data-cancel>Cancel</button></div></form>`,
+  async(fd,form)=>{rows.forEach((r,i)=>{r.stage=form.querySelector(`[name=stage${i}]`).value;r.year=form.querySelector(`[name=year${i}]`).value.trim();r.caption=form.querySelector(`[name=cap${i}]`).value.trim();});
+    if(!rows.length)throw new Error('Choose at least one photo.');
+    const b=$('#gGo'),items=[];
+    for(let i=0;i<rows.length;i++){b.textContent=`Uploading ${i+1} of ${rows.length}…`;const ph=await upload(rows[i].file);if(ph)items.push({photo:ph,stage:rows[i].stage,year:rows[i].year,caption:rows[i].caption});}
+    if(!items.length)throw new Error('The photos could not be uploaded.');
+    if(canAdmin){const at=Date.now();
+      if(window.ClarkTree){await ClarkTree.api('/api/admin/write',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({ops:items.map((it,i)=>({col:'gallery',op:'set',id:'g-'+crypto.randomUUID().replace(/-/g,'').slice(0,14),data:{person:pid,...it,by:'Organizer',at:at+i}}))})});await ClarkTree.refresh();}
+      else for(const it of items)await db.collection('gallery').add({person:pid,...it,by:myId||null,at:Date.now()});
+      toast(`${items.length} photo${items.length>1?'s':''} added.`);}
+    else await submit({kind:'gallery',anchor:pid,items});});
+  const draw=()=>{const def=$('#gDefault').value;
+    $('#gRows').innerHTML=rows.map((r,i)=>`<div class="grow"><img src="${r.url}" alt=""><div class="gf"><select name="stage${i}" aria-label="Stage of life">${opts(r.stage||def)}</select>
+      <input name="year${i}" inputmode="numeric" maxlength="4" placeholder="Year" value="${esc(r.year||'')}" aria-label="Year"><input name="cap${i}" placeholder="Caption" value="${esc(r.caption||'')}" aria-label="Caption"></div>
+      <button type="button" class="gx" data-rm="${i}" aria-label="Remove this photo">×</button></div>`).join('');
+    $('#gGo').disabled=!rows.length;
+    if(rows.length)$('#gGo').textContent=(canAdmin?'Add ':'Submit ')+rows.length+' photo'+(rows.length>1?'s':'');};
+  const keep=()=>rows.forEach((r,i)=>{const f=$('#gRows');const q=n=>f.querySelector(`[name=${n}${i}]`);if(q('stage')){r.stage=q('stage').value;r.year=q('year').value;r.caption=q('cap').value;}});
+  $('#gFiles').addEventListener('change',e=>{keep();const fs=[...e.target.files].slice(0,24-rows.length);
+    for(const f of fs)rows.push({file:f,url:URL.createObjectURL(f),stage:$('#gDefault').value});
+    if(e.target.files.length>fs.length)toast('Up to 24 photos at a time.');e.target.value='';draw();});
+  $('#gDefault').addEventListener('change',()=>{keep();const d=$('#gDefault').value;rows.forEach(r=>{if(!r.touched)r.stage=d;});draw();});
+  $('#gRows').addEventListener('change',e=>{const m=e.target.name&&e.target.name.match(/^stage(\d+)$/);if(m)rows[+m[1]].touched=true;});
+  $('#gRows').addEventListener('click',e=>{const x=e.target.closest('[data-rm]');if(!x)return;keep();const r=rows.splice(+x.dataset.rm,1)[0];URL.revokeObjectURL(r.url);draw();});}
+
+/* ---------- photo viewer: swipe through someone's life ---------- */
+const Lightbox=(()=>{let el=null,list=[],i=0,pid=null,sx=null,dx=0;
+  function build(){el=document.createElement('div');el.id='lightbox';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');
+    el.innerHTML=`<div class="lbTop"><span class="lbN"></span><button class="lbX" aria-label="Close">×</button></div>
+     <div class="lbImg"><img alt=""><button class="lbNav lbPrev" aria-label="Previous photo">‹</button><button class="lbNav lbNext" aria-label="Next photo">›</button></div>
+     <div class="lbCap"><div class="lbStage"></div><div class="lbText"></div><div class="lbBy"></div><div class="lbAct"></div></div>`;
+    document.body.appendChild(el);
+    el.querySelector('.lbX').onclick=close;el.querySelector('.lbPrev').onclick=()=>step(-1);el.querySelector('.lbNext').onclick=()=>step(1);
+    const box=el.querySelector('.lbImg'),img=box.querySelector('img');
+    img.draggable=false;box.addEventListener('dragstart',e=>e.preventDefault());
+    box.addEventListener('pointerdown',e=>{if(e.target.closest('.lbNav'))return;sx=e.clientX;dx=0;img.style.transition='none';try{box.setPointerCapture(e.pointerId);}catch(_){}});
+    box.addEventListener('pointermove',e=>{if(sx===null)return;dx=e.clientX-sx;img.style.transform=`translateX(${dx}px)`;});
+    const end=()=>{if(sx===null)return;img.style.transition='';img.style.transform='';const d=dx;sx=null;dx=0;if(Math.abs(d)>50)step(d<0?1:-1);};
+    box.addEventListener('pointerup',end);box.addEventListener('pointercancel',end);
+    el.querySelector('.lbAct').addEventListener('click',async e=>{const b=e.target.closest('[data-g]');if(!b)return;const [gid,g]=list[i];
+      try{if(b.dataset.g==='profile'){await db.collection('people').doc(pid).update({photo:g.photo});toast('Profile picture updated.');}
+        else if(b.dataset.g==='remove'){if(!confirmRemove(b))return;await db.collection('gallery').doc(gid).delete();toast('Photo removed.');list=galleryOf(pid);if(!list.length)return close();i=Math.min(i,list.length-1);show();}}
+      catch(err){toast(err.message||'Could not do that.');}});}
+  // Two taps to remove, so a stray tap can't delete a family photo
+  function confirmRemove(b){if(b.dataset.armed){return true;}b.dataset.armed='1';b.textContent='Tap again to remove';setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent='Remove';}},3000);return false;}
+  function show(){const [,g]=list[i];const img=el.querySelector('.lbImg img');img.src=blobUrl(g.photo);img.alt=g.caption||STAGE_LABEL[g.stage]||'Photo';
+    el.querySelector('.lbN').textContent=`${fullName(pid)} · ${i+1} of ${list.length}`;
+    el.querySelector('.lbStage').textContent=[STAGE_LABEL[g.stage]||'Photo',g.year].filter(Boolean).join(' · ');
+    el.querySelector('.lbText').textContent=g.caption||'';el.querySelector('.lbBy').textContent=g.by?`Shared by ${g.by}`:'';
+    el.querySelector('.lbAct').innerHTML=canAdmin?`<button class="btn small" data-g="profile">Use as profile picture</button><button class="btn small" data-g="remove">Remove</button>`:'';
+    el.querySelector('.lbPrev').style.visibility=i>0?'':'hidden';el.querySelector('.lbNext').style.visibility=i<list.length-1?'':'hidden';
+    // warm the next photo so swiping feels instant
+    if(list[i+1]){const n=new Image();n.src=blobUrl(list[i+1][1].photo);}}
+  function open(id,idx){if(!el)build();pid=id;list=galleryOf(id);if(!list.length)return;i=Math.max(0,Math.min(idx||0,list.length-1));el.classList.add('open');show();el.querySelector('.lbX').focus();}
+  function close(){if(el)el.classList.remove('open');}
+  function step(d){if(!el||!list.length)return;const n=i+d;if(n<0||n>=list.length)return;i=n;show();}
+  return {open,close,step,isOpen:()=>!!el&&el.classList.contains('open')};})();
 
 /* ---------- link two people who are already on the tree ---------- */
 // rel = what the PICKED person is to the anchor (the profile you're on).
@@ -1267,7 +1381,7 @@ function subscribe(col,target,key){let timer=setTimeout(()=>{if(key&&!loaded[key
   if(user){try{canAdmin=!!(await user.canEdit());}catch(e){}try{const c=await user.can('data.write');canWrite=c===null||c===undefined?null:!!c;}catch(e){}try{myId=await user.id();}catch(e){}}
   if(canAdmin)canWrite=true;
   $('#addBtn').classList.toggle('hidden',!canAdmin);$('#reviewBtn').classList.toggle('hidden',!canAdmin);
-  subscribe('people',P,'people');subscribe('unions',U,'unions');subscribe('heirlooms',HL,null);
+  subscribe('people',P,'people');subscribe('unions',U,'unions');subscribe('heirlooms',HL,null);subscribe('gallery',GL,null);
   if(canAdmin)subscribe('submissions',SUB,null);
 })();
 </script>

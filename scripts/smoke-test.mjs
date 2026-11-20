@@ -94,11 +94,26 @@ await link({ rel: 'sibling', anchor: 'p-t-sib', target: 'p-t-kid' });
 t5 = await tree(); ok(t5.people['p-t-sib'].parentUnion === t5.people['p-t-kid'].parentUnion, 'linking a sibling puts them under the same parents');
 // duplicates
 await W([{ col: 'people', op: 'set', id: 'p-t-dup', data: { first: 'Mom', last: 'T', born: '1967', parentUnion: null } },
-  { col: 'heirlooms', op: 'set', id: 'h-t-1', data: { person: 'p-t-dup', title: 'Ring', by: 'x', at: 1 } }]);
+  { col: 'heirlooms', op: 'set', id: 'h-t-1', data: { person: 'p-t-dup', title: 'Ring', by: 'x', at: 1 } },
+  { col: 'gallery', op: 'set', id: 'g-t-dup', data: { person: 'p-t-dup', photo: 'ph-none', stage: 'wedding', at: 2 } }]);
 r = await link({ rel: 'same', anchor: 'p-t-dup', target: 'p-t-mom' });
 t5 = await tree();
 ok(r.ok && !t5.people['p-t-dup'] && t5.people['p-t-mom'].born === '1967', 'merging a duplicate keeps one person and fills in missing details');
 ok(t5.heirlooms['h-t-1'] && t5.heirlooms['h-t-1'].person === 'p-t-mom', 'the duplicate’s keepsakes move to the kept person');
+ok(t5.gallery['g-t-dup'] && t5.gallery['g-t-dup'].person === 'p-t-mom', 'the duplicate’s photos move to the kept person');
+// photo gallery: relatives send photos for review; nothing shows until approved
+const up = async () => (await (await fetch(BASE + '/api/photos', { method: 'POST', headers: { ...fam, 'content-type': 'image/jpeg' }, body: jpg })).json()).id;
+const g1 = await up(), g2 = await up();
+r = await fetch(BASE + '/api/submissions', { method: 'POST', headers: { ...fam, 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'gallery', anchor: 'p-t-kid', submitter: 'Cousin', items: [
+  { photo: g1, stage: 'baby', year: '1967', caption: 'First birthday' }, { photo: g2, stage: 'not-a-stage', year: '1985', caption: 'Football' }] }) });
+const gs = await r.json();
+let tg = await tree(); ok(gs.id && !Object.values(tg.gallery).some((g) => g.person === 'p-t-kid'), 'gallery photos wait for review');
+r = await fetch(BASE + '/_blob/' + g1, { headers: fam }); ok(r.status === 404, 'a gallery photo stays hidden until approved');
+r = await fetch(BASE + `/api/admin/submissions/${gs.id}/approve`, { method: 'POST', headers: admin });
+tg = await tree(); const mine = Object.values(tg.gallery).filter((g) => g.person === 'p-t-kid');
+ok(r.ok && mine.length === 2 && mine.some((g) => g.stage === 'baby' && g.year === '1967' && g.caption === 'First birthday' && g.by === 'Cousin'), 'approved photos land in the gallery with stage, year, caption and who shared them');
+ok(mine.some((g) => g.stage === 'other'), 'an unknown stage is filed under Other');
+r = await fetch(BASE + '/_blob/' + g1, { headers: fam }); ok(r.ok, 'approved gallery photo is visible to family');
 // relatives can only ask
 r = await fetch(BASE + '/api/admin/link', { method: 'POST', headers: { ...fam, 'content-type': 'application/json' }, body: JSON.stringify({ rel: 'spouse', anchor: 'p-t-kid', target: 'p-t-sib' }) });
 ok(r.status === 401, 'family link cannot link people directly');
