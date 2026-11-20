@@ -1124,10 +1124,17 @@ const Paint=(()=>{
  function rand(seed){let s=seed>>>0;return ()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return (s>>>0)/4294967296;};}
  function mix(a,b,t){t=Math.max(0,Math.min(1,t));return a.map((v,i)=>Math.round(v+(b[i]-v)*t));}
  function rgba(c,a=1){return `rgba(${c[0]},${c[1]},${c[2]},${a})`;}
- function soft(ctx,x,y,rx,ry,col,alpha){ctx.save();ctx.translate(x,y);ctx.scale(Math.max(.1,rx),Math.max(.1,ry));const g=ctx.createRadialGradient(0,0,.05,0,0,1);g.addColorStop(0,rgba(col,alpha));g.addColorStop(.5,rgba(col,alpha*.55));g.addColorStop(1,rgba(col,0));ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,1,0,TAU);ctx.fill();ctx.restore();}
+ // Soft washes are drawn from one small cached gradient per colour, stretched into place.
+ // Building a fresh gradient for each of thousands of washes is what made phones freeze.
+ const SPR=new Map();
+ function sprite(col){const q=col.map(v=>Math.max(0,Math.min(255,Math.round(v/4)*4)));const key=q.join(',');let c=SPR.get(key);
+   if(!c){c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const g=x.createRadialGradient(32,32,1.6,32,32,32);
+     g.addColorStop(0,rgba(q,1));g.addColorStop(.5,rgba(q,.55));g.addColorStop(1,rgba(q,0));x.fillStyle=g;x.fillRect(0,0,64,64);SPR.set(key,c);}
+   return c;}
+ function soft(ctx,x,y,rx,ry,col,alpha){if(rx<.5||ry<.5||alpha<=0)return;const a=ctx.globalAlpha;ctx.globalAlpha=a*Math.min(1,alpha);ctx.drawImage(sprite(col),x-rx,y-ry,rx*2,ry*2);ctx.globalAlpha=a;}
  function disc(ctx,x,y,rad,col,a=1){ctx.beginPath();ctx.arc(x,y,Math.max(.2,rad),0,TAU);ctx.fillStyle=rgba(col,a);ctx.fill();}
  // one bristle-brush mark: a rotated, slightly tapered ellipse
- function dab(ctx,x,y,len,wid,ang,col,a){ctx.save();ctx.translate(x,y);ctx.rotate(ang);ctx.beginPath();ctx.ellipse(0,0,Math.max(.3,len),Math.max(.2,wid),0,0,TAU);ctx.fillStyle=rgba(col,a);ctx.fill();ctx.restore();}
+ function dab(ctx,x,y,len,wid,ang,col,a){ctx.beginPath();ctx.ellipse(x,y,Math.max(.3,len),Math.max(.2,wid),ang,0,TAU);ctx.fillStyle=rgba(col,a);ctx.fill();}
  const SKY=[[52,121,198],[86,152,215],[150,193,229],[214,226,232]];
  const CLOUD={hi:[255,252,244],body:[244,240,236],warm:[255,236,224],shade:[184,186,212],deep:[150,160,198]};
 
@@ -1217,11 +1224,11 @@ const Paint=(()=>{
    const g=ctx.createLinearGradient(0,H*.66,0,H);g.addColorStop(0,'rgb(150,182,92)');g.addColorStop(.35,'rgb(104,156,74)');g.addColorStop(1,'rgb(54,104,52)');ctx.fillStyle=g;ctx.fill();
    const N=AREA();
    // grass blades: thousands of short upward strokes, lighter far away
-   for(let i=0;i<9000*N;i++){const x=r()*W,t0=top(x),d=Math.pow(r(),.7),y=t0+d*(H-t0);const s=.4+d*2.2;
+   for(let i=0;i<6000*N;i++){const x=r()*W,t0=top(x),d=Math.pow(r(),.7),y=t0+d*(H-t0);const s=(.4+d*2.2)*1.12;
      const c=[[92,150,68],[128,178,80],[170,200,96],[64,118,58],[196,214,120],[48,96,52]][Math.floor(r()*6)];
      dab(ctx,x,y,(3+r()*6)*s*K,(.5+r()*.8)*s*K,-Math.PI/2+(r()-.5)*.6,c,.25+r()*.45);}
    // flower confetti: tiny far away, large up close
-   for(let i=0;i<7000*N;i++){const x=r()*W,t0=top(x),d=Math.pow(r(),.8),y=t0+d*(H-t0);const s=(.5+d*3.2)*K;
+   for(let i=0;i<5000*N;i++){const x=r()*W,t0=top(x),d=Math.pow(r(),.8),y=t0+d*(H-t0);const s=(.5+d*3.2)*K*1.12;
      const c=FLOWERS[Math.floor(r()*FLOWERS.length)];dab(ctx,x,y,(1+r()*1.6)*s,(.8+r()*1.2)*s,r()*TAU,c,.55+r()*.4);}
    // petals carried up the valley on the wind
    for(let i=0;i<260*N;i++){const x=W*.3+r()*W*.75,y=H*(.50+r()*.22);dab(ctx,x,y,(1.2+r()*2.2)*K,(.8+r()*1.2)*K,r()*TAU,FLOWERS[r()<.6?0:1],.55+r()*.35);}
@@ -1314,7 +1321,7 @@ const Paint=(()=>{
    // Thousands of small, low-opacity leaf marks give the crown its texture.
    // They spill past each mass's edge, so the silhouette dissolves into leaves instead of a hard rim.
    for(const c of clumps){
-     const v=(c.y-cy0)/Math.max(1,cy1-cy0)*.45,marks=Math.round(220*(c.s/R)*(c.s/R)+80);
+     const v=(c.y-cy0)/Math.max(1,cy1-cy0)*.45,marks=Math.round(150*(c.s/R)*(c.s/R)+60);
      for(let j=0;j<marks;j++){const a=r()*TAU,rr=Math.pow(r(),.7)*1.15;
        const dx=Math.cos(a)*rr*c.s*.95,dy=Math.sin(a)*rr*c.s*.68;
        const light=(dx/c.s*.55-dy/c.s*.9)+(r()-.5)*.7;   // lit from above and the right
@@ -1324,7 +1331,7 @@ const Paint=(()=>{
        dab(ctx,c.x+dx,c.y+dy,c.s*(.03+r()*.05),c.s*(.02+r()*.03),(r()-.5)*2.2,col,edge?.22+r()*.3:.2+r()*.4);}
    }
    // wispy sprays that knit neighbouring masses together
-   for(let i=0;i<clumps.length*40;i++){const c=clumps[Math.floor(r()*clumps.length)];const a=r()*TAU,d=c.s*(.7+r()*.55);
+   for(let i=0;i<clumps.length*28;i++){const c=clumps[Math.floor(r()*clumps.length)];const a=r()*TAU,d=c.s*(.7+r()*.55);
      dab(ctx,c.x+Math.cos(a)*d,c.y+Math.sin(a)*d*.66,c.s*(.02+r()*.035),c.s*(.015+r()*.02),r()*TAU,Math.sin(a)<0?(r()<.5?LEAF.light:LEAF.mid):LEAF.shade,.14+r()*.2);}
    // a few gaps where the sky shows through
    for(let i=0;i<clumps.length*.4;i++){const c=clumps[Math.floor(r()*clumps.length)];disc(ctx,c.x+(r()-.5)*c.s*1.5,c.y+(r()-.5)*c.s*.9,c.s*(.03+r()*.04),LEAF.sky,.8);}
@@ -1341,24 +1348,24 @@ const Paint=(()=>{
    for(let i=0;i<14000*AREA();i++){ctx.fillStyle=r()<.5?'rgba(255,250,232,.05)':'rgba(40,50,60,.03)';ctx.fillRect(r()*W,r()*H,(.4+r())*K,(.4+r())*K);}
  }
  // Size the painting to the screen: wide screens get a wide painting, phones a tall one.
- function fit(canvas){const vw=innerWidth||1600,vh=innerHeight||900;const aspect=Math.max(.42,Math.min(2.4,vw/vh));
-   if(aspect>=1){W=1600;H=Math.round(1600/aspect);}else{H=1700;W=Math.round(1700*aspect);}
-   K=Math.min(W,H)/900;canvas.width=W;canvas.height=H;}
- function draw(canvas,kind){
-   if(!canvas)return;fit(canvas);
-   const ctx=canvas.getContext('2d',{alpha:false});const r=rand(kind==='intro'?391722:982712);
-   sky(ctx,r);mountains(ctx,r);meadow(ctx,r);
-   const portrait=W<H;
-   if(kind==='intro'){
-     oak(ctx,r,W*(portrait?.84:.16),H*.76,portrait?W*.07:H*.07,false);   // a far tree across the meadow
-     oak(ctx,r,W*.5,H*.90,portrait?W*.26:H*.22,true);
-   }else{
-     oak(ctx,r,W*(portrait?-.04:.0),H*.95,portrait?W*.22:H*.16,false);
-     oak(ctx,r,W*(portrait?1.05:1.0),H*.93,portrait?W*.18:H*.14,false);
-   }
-   canvasTexture(ctx,r);
-   if(document.documentElement.dataset.theme==='dark')twilight(ctx,r);
- }
+ function dims(){const vw=innerWidth||1600,vh=innerHeight||900;const aspect=Math.max(.42,Math.min(2.4,vw/vh));
+   return aspect>=1?[1600,Math.round(1600/aspect)]:[Math.round(1700*aspect),1700];}
+ function fit(canvas){[W,H]=dims();K=Math.min(W,H)/900;canvas.width=W;canvas.height=H;}
+ // The painting in steps. drawAsync pauses between them so a slower phone stays responsive
+ // while it paints; it paints off-screen and shows the finished picture in one go.
+ function steps(ctx,r,kind){const portrait=W<H;return [
+   ()=>sky(ctx,r),()=>mountains(ctx,r),()=>meadow(ctx,r),
+   ()=>{if(kind==='intro')oak(ctx,r,W*(portrait?.84:.16),H*.76,portrait?W*.07:H*.07,false);   // a far tree across the meadow
+        else oak(ctx,r,W*(portrait?-.04:.0),H*.95,portrait?W*.22:H*.16,false);},
+   ()=>{if(kind==='intro')oak(ctx,r,W*.5,H*.90,portrait?W*.26:H*.22,true);
+        else oak(ctx,r,W*(portrait?1.05:1.0),H*.93,portrait?W*.18:H*.14,false);},
+   ()=>{canvasTexture(ctx,r);if(document.documentElement.dataset.theme==='dark')twilight(ctx,r);}];}
+ function draw(canvas,kind){if(!canvas)return;fit(canvas);const ctx=canvas.getContext('2d',{alpha:false});
+   for(const st of steps(ctx,rand(kind==='intro'?391722:982712),kind))st();}
+ async function drawAsync(canvas,kind){if(!canvas)return;const off=document.createElement('canvas');fit(off);const w=W,h=H;
+   const ctx=off.getContext('2d',{alpha:false});const pause=()=>new Promise(res=>setTimeout(res,0));
+   for(const st of steps(ctx,rand(kind==='intro'?391722:982712),kind)){st();await pause();}
+   canvas.width=w;canvas.height=h;canvas.getContext('2d',{alpha:false}).drawImage(off,0,0);}
  // Where the hero oak's crown sits, so the intro can zoom into it.
  function heroFocus(){return W<H?'50% 70%':'50% 57%';}
  // Night: the same painting glazed into sunset, the sun dropping into the valley notch.
@@ -1377,21 +1384,38 @@ const Paint=(()=>{
    for(let i=0;i<220*AREA();i++){const y=r()*r()*H*.36,a=(1-y/(H*.36))*(.25+r()*.6);ctx.fillStyle=`rgba(255,248,235,${a})`;const z=(r()<.08?1.8:1)*K;ctx.fillRect(r()*W,y,z,z);}
    ctx.restore();
  }
- return {draw,heroFocus};
+ return {draw,drawAsync,heroFocus,dims};
 })();
-Paint.draw($('#introScene'),'intro');
-Paint.draw($('#backdrop'),'backdrop');
+/* Paintings are saved on the device after the first time, so later opens show them instantly.
+   A new copy is painted only when the screen shape, the theme or the painting itself changes. */
+const PAINT_VER='p4';
+let paintChain=Promise.resolve();
+function paintScene(canvas,kind){const job=paintChain.then(()=>paintSceneNow(canvas,kind)).catch(()=>{});paintChain=job;return job;}
+async function paintSceneNow(canvas,kind){if(!canvas)return;
+  const [w,h]=Paint.dims(),theme=document.documentElement.dataset.theme||'light',tok=(canvas._tok=(canvas._tok||0)+1);
+  const key=`/__paint/${PAINT_VER}/${kind}-${theme}-${w}x${h}.jpg`;
+  try{if('caches' in window){const hit=await (await caches.open('clark-paint')).match(key);
+    if(hit){const bmp=await createImageBitmap(await hit.blob());if(canvas._tok!==tok)return;canvas.width=w;canvas.height=h;canvas.getContext('2d',{alpha:false}).drawImage(bmp,0,0,w,h);return;}}}catch(_){}
+  if(canvas._tok!==tok)return;
+  await Paint.drawAsync(canvas,kind);
+  try{canvas.toBlob(b=>{if(b&&'caches' in window)caches.open('clark-paint').then(c=>c.put(key,new Response(b,{headers:{'content-type':'image/jpeg'}}))).catch(()=>{});},'image/jpeg',.9);}catch(_){}}
+const nextFrame=()=>new Promise(r=>requestAnimationFrame(()=>setTimeout(r,30)));
+// Opening scene first so something shows right away; the backdrop behind the tree follows a moment later.
+async function repaintScenes(withIntro){if(withIntro&&$('#introScene')&&!introDone){await paintScene($('#introScene'),'intro');await nextFrame();}await paintScene($('#backdrop'),'backdrop');}
+repaintScenes(true);
+// tidy away paintings from older versions
+setTimeout(()=>{try{caches.open('clark-paint').then(c=>c.keys().then(ks=>ks.forEach(k=>{if(!k.url.includes('/'+PAINT_VER+'/'))c.delete(k);})));}catch(_){}},8000);
 {let lastShape=innerWidth>innerHeight,rz=null;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{const shape=innerWidth>innerHeight;
   if(shape===lastShape&&Math.abs(innerWidth/innerHeight-(window._paintAspect||0))<.25)return;lastShape=shape;window._paintAspect=innerWidth/innerHeight;
-  if($('#introScene')&&!introDone)Paint.draw($('#introScene'),'intro');Paint.draw($('#backdrop'),'backdrop');},350);});window._paintAspect=innerWidth/innerHeight;}
+  repaintScenes(true);},350);});window._paintAspect=innerWidth/innerHeight;}
 
 /* ---------- light / night switch ---------- */
-function setTheme(t,save){document.documentElement.dataset.theme=t;document.querySelectorAll('meta[name=theme-color]').forEach(m=>{m.content=t==='dark'?'#141726':'#f3efe0';m.removeAttribute('media');});if(save){try{localStorage.setItem('clarkTheme',t);}catch(e){}}
+function setTheme(t,save,paint=true){document.documentElement.dataset.theme=t;document.querySelectorAll('meta[name=theme-color]').forEach(m=>{m.content=t==='dark'?'#141726':'#f3efe0';m.removeAttribute('media');});if(save){try{localStorage.setItem('clarkTheme',t);}catch(e){}}
   const night=t==='dark';for(const b of document.querySelectorAll('.themeBtn')){b.textContent=night?'☀︎':'☾';b.setAttribute('aria-label',night?'Switch to day':'Switch to night');b.title=night?'Day':'Night';}
-  if($('#introScene'))Paint.draw($('#introScene'),'intro');Paint.draw($('#backdrop'),'backdrop');
+  if(paint)repaintScenes(true);
   if(typeof orchard!=='undefined'&&orchard)orchard.draw();Ambient.wake();}
 function onResume(){if(document.visibilityState!=='visible')return;
-  try{if($('#introScene')&&!introDone)Paint.draw($('#introScene'),'intro');Paint.draw($('#backdrop'),'backdrop');}catch(_){}
+  repaintScenes(true).catch(()=>{});
   if(typeof orchard!=='undefined'&&orchard)orchard.resize();}
 document.addEventListener('visibilitychange',onResume);
 addEventListener('pageshow',e=>{if(e.persisted)onResume();});
@@ -1427,9 +1451,9 @@ const Ambient=(()=>{const cv=$('#ambient'),ctx=cv.getContext('2d');let w=0,h=0,d
   function wake(){if(!raf)raf=requestAnimationFrame(frame);}
   addEventListener('resize',()=>{size();flies=[];wake();});document.addEventListener('visibilitychange',wake);cv.addEventListener('contextrestored',()=>{size();wake();});
   size();return {gust,wake};})();
-setTheme(document.documentElement.dataset.theme||'light',false);
+setTheme(document.documentElement.dataset.theme||'light',false,false);   // already painted in this theme above
 setTimeout(()=>Ambient.gust(46),500);
-let introDone=false;
+var introDone=false;   // var: the painter checks it before this line runs
 function finishIntro(){introDone=true;Ambient.gust(70);Install.ready();document.body.classList.remove('intro');const it=$('#intro');it.classList.add('fade');setTimeout(()=>it.remove(),1100);schedule();}
 function walk(){const it=$('#intro');if(it.classList.contains('go'))return;it.classList.add('go');
  const sc=$('#introScene');const rm=matchMedia('(prefers-reduced-motion:reduce)').matches;
