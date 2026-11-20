@@ -277,7 +277,7 @@ html[data-theme=dark] #installTip{background:rgba(24,27,44,.97);border-color:#3d
  /* phone tab bar: icon over a short label, equal widths */
  #dock{gap:0;justify-content:space-around;padding-top:6px}
  #dock .seg{display:contents}
- #dock .btn,#dock .seg button{flex:1 1 0;min-width:58px;display:flex!important;flex-direction:column;align-items:center;gap:3px;padding:4px 2px!important;font-size:11px!important;font-weight:500;line-height:1.1;background:none!important;border:0!important;border-radius:10px;box-shadow:none!important;color:var(--muted,#646b59);position:relative}
+ #dock .btn,#dock .seg button{flex:1 1 0;display:flex!important;flex-direction:column;align-items:center;gap:3px;padding:4px 2px!important;font-size:11px!important;font-weight:500;line-height:1.15;white-space:normal!important;text-align:center;min-width:0;overflow-wrap:normal;background:none!important;border:0!important;border-radius:10px;box-shadow:none!important;color:var(--muted,#646b59);position:relative}
  #dock .btn.hidden{display:none!important}
  #dock .btn::before,#dock .seg button::before{content:'';width:24px;height:24px;background:currentColor;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
  #v2::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M12%2021v-6%27/%3E%3Cpath%20d%3D%27M12%2015l-4-3M12%2015l4-3%27/%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%278%27%20r%3D%275%27/%3E%3Ccircle%20cx%3D%276.5%27%20cy%3D%2711%27%20r%3D%272.5%27/%3E%3Ccircle%20cx%3D%2717.5%27%20cy%3D%2711%27%20r%3D%272.5%27/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M12%2021v-6%27/%3E%3Cpath%20d%3D%27M12%2015l-4-3M12%2015l4-3%27/%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%278%27%20r%3D%275%27/%3E%3Ccircle%20cx%3D%276.5%27%20cy%3D%2711%27%20r%3D%272.5%27/%3E%3Ccircle%20cx%3D%2717.5%27%20cy%3D%2711%27%20r%3D%272.5%27/%3E%3C/svg%3E")}
@@ -300,6 +300,7 @@ html[data-theme=dark] #installTip{background:rgba(24,27,44,.97);border-color:#3d
  #installTip{bottom:calc(72px + env(safe-area-inset-bottom))}
  #drawer{height:min(72vh,calc(100vh - 70px - env(safe-area-inset-top)));padding-bottom:env(safe-area-inset-bottom)}
 }
+@media (max-width:380px){#dock .btn,#dock .seg button{font-size:10px!important;letter-spacing:-.1px}}
 /* opened from the home screen: no browser bar, so nothing to nag about */
 @media (display-mode:standalone){#installTip{display:none!important}}
 </style>
@@ -318,7 +319,7 @@ html[data-theme=dark] #installTip{background:rgba(24,27,44,.97);border-color:#3d
     <button class="btn" id="fit" aria-label="Fit the tree to the screen">Fit</button>
     <button class="btn hidden" id="unplacedBtn">Unplaced <span class="badge" id="unplacedN">0</span></button>
     <button class="btn hidden" id="reviewBtn">Review <span class="badge" id="reviewN">0</span></button>
-    <button class="btn primary hidden" id="addBtn">+ Person</button>
+    <button class="btn primary hidden" id="addBtn">Add person</button>
     <a class="btn primary hidden" id="addSelfBtn" href="/add" style="text-decoration:none">Add yourself</a>
   </nav>
   <button class="btn themeBtn" type="button" aria-label="Switch to night">☾</button>
@@ -1249,7 +1250,7 @@ let rt=null;function schedule(){clearTimeout(rt);rt=setTimeout(()=>{if(!introDon
   if(!Object.keys(P).length){showMsg('No one on the tree yet',canAdmin?'Use “+ Person” to add the first relative.':'The organizer hasn’t added anyone yet.');}else showMsg('');render();},60);}
 function subscribe(col,target,key){let timer=setTimeout(()=>{if(key&&!loaded[key])showMsg('Can’t reach the family records yet','Check your connection — this will fill in once it answers.');},10000);
   db.collection(col).onSnapshot(snap=>{if(!snap.metadata.fromCache)clearTimeout(timer);for(const k in target)delete target[k];snap.docs.forEach(d=>{target[d.id]=d.data();});
-    if(key)loaded[key]=true;if(col==='submissions'){const n=snap.size;$('#reviewN').textContent=n;}schedule();},
+    if(key)loaded[key]=true;if(col==='submissions'){const n=snap.size;$('#reviewN').textContent=n;$('#reviewN').style.display=n?'':'none';}schedule();},
   err=>{clearTimeout(timer);if(key&&!loaded[key]){loaded[key]=true;showMsg('The family records couldn’t load','Reopen this page to try again.');}});}
 (async()=>{
   if(!window.claude||!claude.use){if(window.DEMO_DATA){Object.assign(P,DEMO_DATA.people||{});Object.assign(U,DEMO_DATA.unions||{});Object.assign(HL,DEMO_DATA.heirlooms||{});canWrite=false;loaded.people=loaded.unions=true;schedule();}else showMsg('Open this tree on claude.ai','It reads the family records from there.');return;}
