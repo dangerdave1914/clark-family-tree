@@ -1291,24 +1291,36 @@ const Paint=(()=>{
      const n=8+Math.floor(r()*4);for(let k=0;k<n;k++){const a=k/n*TAU+r()*.4;const up=Math.sin(a)<0;c.lobes.push({a,d:c.s*(.38+r()*.22),rad:c.s*(up?.42+r()*.2:.30+r()*.16)});}
      clumps.push(c);}
    clumps.sort((a,b)=>a.y-b.y);
-   for(const c of clumps)soft(ctx,c.x,c.y+c.s*.2,c.s*1.5,c.s*1.0,LEAF.deep,.5);
-   const pad=(c,dx,dy,scale,col,alpha,only)=>{for(const l of c.lobes){if(only&&Math.sin(l.a)>only)continue;
-       disc(ctx,c.x+Math.cos(l.a)*l.d*scale+dx*c.s,c.y+Math.sin(l.a)*l.d*.62*scale+dy*c.s,l.rad*scale,col,alpha);}
-     disc(ctx,c.x+dx*c.s,c.y+dy*c.s,c.s*.42*scale,col,alpha);};
    const cy0=Math.min(...clumps.map(c=>c.y)),cy1=Math.max(...clumps.map(c=>c.y));
+   // Soft pigment masses (from the earlier painting): radial washes, no hard outlines.
+   const wash=(c,dx,dy,scale,col,alpha,only)=>{for(const l of c.lobes){if(only!==undefined&&Math.sin(l.a)>only)continue;
+       soft(ctx,c.x+Math.cos(l.a)*l.d*scale+dx*c.s,c.y+Math.sin(l.a)*l.d*.62*scale+dy*c.s,l.rad*scale*1.18,l.rad*scale*1.0,col,alpha);}
+     soft(ctx,c.x+dx*c.s,c.y+dy*c.s,c.s*.6*scale,c.s*.5*scale,col,alpha);};
+   for(const c of clumps)soft(ctx,c.x,c.y+c.s*.2,c.s*1.6,c.s*1.1,LEAF.deep,.42);
    for(const c of clumps){
      const v=(c.y-cy0)/Math.max(1,cy1-cy0)*.45;const L=k=>mix(LEAF[k],LEAF.deep,v);
-     pad(c,0,.06,1.04,LEAF.deep,1);
-     pad(c,0,0,1,L('shade'),1);
-     pad(c,.06,-.10,.86,L('mid'),1);
-     pad(c,.12,-.20,.68,L('light'),.95,.3);
-     pad(c,.18,-.30,.42,L('sun'),.9,0);
-     // leafy rim: small leaf marks break up the outline, bright along the top
-     for(let k=0;k<60;k++){const l=c.lobes[Math.floor(r()*c.lobes.length)];const a=l.a+(r()-.5)*.7,d=l.d+l.rad*(.75+r()*.35);
-       const up=Math.sin(a)<.1,lit=up&&Math.cos(a+.9)>-.3;
-       dab(ctx,c.x+Math.cos(a)*d,c.y+Math.sin(a)*d*.62,c.s*(.07+r()*.04),c.s*(.04+r()*.02),a+(r()-.5),lit?(r()<.5?LEAF.sun:LEAF.light):(up?LEAF.mid:LEAF.shade),.85);}
-     for(let k=0;k<14;k++){const a=-r()*Math.PI,d=c.s*r()*.55;dab(ctx,c.x+c.s*.15+Math.cos(a)*d,c.y-c.s*.22+Math.sin(a)*d*.55,c.s*.065,c.s*.038,a,r()<.5?LEAF.glint:LEAF.sun,.5);}
+     wash(c,0,.06,1.05,LEAF.deep,.6);
+     wash(c,0,0,1,L('shade'),.7);
+     wash(c,.06,-.10,.86,L('mid'),.7);
+     wash(c,.12,-.20,.66,L('light'),.7,.3);
+     wash(c,.18,-.30,.42,L('sun'),.65,0);
+     wash(c,.24,-.36,.22,LEAF.glint,.4,0);
    }
+   // Thousands of small, low-opacity leaf marks give the crown its texture.
+   // They spill past each mass's edge, so the silhouette dissolves into leaves instead of a hard rim.
+   for(const c of clumps){
+     const v=(c.y-cy0)/Math.max(1,cy1-cy0)*.45,marks=Math.round(220*(c.s/R)*(c.s/R)+80);
+     for(let j=0;j<marks;j++){const a=r()*TAU,rr=Math.pow(r(),.7)*1.15;
+       const dx=Math.cos(a)*rr*c.s*.95,dy=Math.sin(a)*rr*c.s*.68;
+       const light=(dx/c.s*.55-dy/c.s*.9)+(r()-.5)*.7;   // lit from above and the right
+       let col=light>.45?(r()<.5?LEAF.sun:LEAF.glint):light>.05?(r()<.5?LEAF.light:LEAF.mid):light>-.35?LEAF.shade:LEAF.deep;
+       col=mix(col,LEAF.deep,v*.8);
+       const edge=rr>.9;
+       dab(ctx,c.x+dx,c.y+dy,c.s*(.03+r()*.05),c.s*(.02+r()*.03),(r()-.5)*2.2,col,edge?.22+r()*.3:.2+r()*.4);}
+   }
+   // wispy sprays that knit neighbouring masses together
+   for(let i=0;i<clumps.length*40;i++){const c=clumps[Math.floor(r()*clumps.length)];const a=r()*TAU,d=c.s*(.7+r()*.55);
+     dab(ctx,c.x+Math.cos(a)*d,c.y+Math.sin(a)*d*.66,c.s*(.02+r()*.035),c.s*(.015+r()*.02),r()*TAU,Math.sin(a)<0?(r()<.5?LEAF.light:LEAF.mid):LEAF.shade,.14+r()*.2);}
    // a few gaps where the sky shows through
    for(let i=0;i<clumps.length*.4;i++){const c=clumps[Math.floor(r()*clumps.length)];disc(ctx,c.x+(r()-.5)*c.s*1.5,c.y+(r()-.5)*c.s*.9,c.s*(.03+r()*.04),LEAF.sky,.8);}
    if(hero&&document.documentElement.dataset.theme!=='dark'){ // sunlight bursting through the crown
