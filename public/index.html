@@ -2,7 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Clark Family">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f3efe0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141726" media="(prefers-color-scheme: dark)">
 <title>Clark Family Tree</title>
 <script>(function(){var t=null;try{t=localStorage.getItem('clarkTheme');}catch(e){}if(t!=='light'&&t!=='dark')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;})();</script>
 <meta name="robots" content="noindex">
@@ -231,6 +240,68 @@ html[data-theme=dark] body.mode3d #hint{color:#f3e6d2}
 html[data-theme=dark] #toast{background:#fbf4e6;color:#1b1f38}
 html[data-theme=dark] #msg h2{color:#fbf4e6}
 @media(max-width:640px){#portraitHover img{width:52px;height:52px}#portraitHover{max-width:230px}#threeLegend{bottom:48px;font-size:12px}}
+
+/* ---------- app shell: desktop keeps one header row; phones get a slim title bar + bottom dock ---------- */
+#dock{display:contents}
+#searchToggle{display:none}
+.iconBtn{display:inline-flex;align-items:center;justify-content:center;padding:8px 10px}
+.search input::-webkit-search-cancel-button{display:none}
+html,body{overscroll-behavior:none}
+body{-webkit-tap-highlight-color:transparent}
+header{padding-top:max(10px,env(safe-area-inset-top));padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
+#intro .introTheme{top:max(14px,env(safe-area-inset-top))!important}
+#installTip{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:35;display:flex;gap:10px;align-items:center;max-width:460px;margin:0 auto;padding:12px 12px 12px 16px;border-radius:16px;background:rgba(250,247,237,.97);border:1px solid var(--border);box-shadow:0 12px 34px rgba(30,30,20,.22);font-size:14px;color:var(--ink)}
+#installTip>div{flex:1;display:flex;flex-direction:column;gap:2px}#installTip b{font-weight:600}#installTip span{color:var(--muted)}
+#installTip .ghost{background:none;border:0;opacity:.6}
+html[data-theme=dark] #installTip{background:rgba(24,27,44,.97);border-color:#3d4460;color:#fbf4e6}html[data-theme=dark] #installTip span{color:#d9cfbd}
+@media (max-width:720px){
+ header{flex-wrap:nowrap;gap:8px;padding-bottom:8px;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(248,245,235,.96)!important}
+ html[data-theme=dark] header{background:rgba(20,23,38,.96)!important}
+ #dock>*{flex:none}
+ .brand{flex:1;min-width:0}.brand h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .search{display:none}
+ #searchToggle{display:inline-flex}
+ header.searching .brand,header.searching #searchToggle{display:none}
+ header.searching .search{display:block;flex:1}
+ header.searching .search input{width:100%;font-size:16px}
+ header.searching .results{min-width:0}
+ #dock{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:22;gap:6px;align-items:center;justify-content:space-between;overflow-x:auto;scrollbar-width:none;
+  padding:8px max(10px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
+  background:rgba(248,245,235,.9);backdrop-filter:blur(17px);-webkit-backdrop-filter:blur(17px);border-top:1px solid rgba(137,144,116,.25)}
+ #dock::-webkit-scrollbar{display:none}
+ #dock{gap:5px}
+ #dock .btn,#dock .seg button{padding:10px 10px;font-size:14.5px;white-space:nowrap}
+ #dock .badge{margin-left:2px}
+ #dock .primary{margin-left:auto}
+ html[data-theme=dark] #dock{background:rgba(20,23,38,.9);border-top-color:rgba(255,255,255,.08)}
+ /* phone tab bar: icon over a short label, equal widths */
+ #dock{gap:0;justify-content:space-around;padding-top:6px}
+ #dock .seg{display:contents}
+ #dock .btn,#dock .seg button{flex:1 1 0;min-width:58px;display:flex!important;flex-direction:column;align-items:center;gap:3px;padding:4px 2px!important;font-size:11px!important;font-weight:500;line-height:1.1;background:none!important;border:0!important;border-radius:10px;box-shadow:none!important;color:var(--muted,#646b59);position:relative}
+ #dock .btn.hidden{display:none!important}
+ #dock .btn::before,#dock .seg button::before{content:'';width:24px;height:24px;background:currentColor;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+ #v2::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M12%2021v-6%27/%3E%3Cpath%20d%3D%27M12%2015l-4-3M12%2015l4-3%27/%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%278%27%20r%3D%275%27/%3E%3Ccircle%20cx%3D%276.5%27%20cy%3D%2711%27%20r%3D%272.5%27/%3E%3Ccircle%20cx%3D%2717.5%27%20cy%3D%2711%27%20r%3D%272.5%27/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M12%2021v-6%27/%3E%3Cpath%20d%3D%27M12%2015l-4-3M12%2015l4-3%27/%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%278%27%20r%3D%275%27/%3E%3Ccircle%20cx%3D%276.5%27%20cy%3D%2711%27%20r%3D%272.5%27/%3E%3Ccircle%20cx%3D%2717.5%27%20cy%3D%2711%27%20r%3D%272.5%27/%3E%3C/svg%3E")}
+ #v3::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M12%203l8%204.5v9L12%2021l-8-4.5v-9z%27/%3E%3Cpath%20d%3D%27M12%2012l8-4.5M12%2012L4%207.5M12%2012v9%27/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M12%203l8%204.5v9L12%2021l-8-4.5v-9z%27/%3E%3Cpath%20d%3D%27M12%2012l8-4.5M12%2012L4%207.5M12%2012v9%27/%3E%3C/svg%3E")}
+ #fit::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M4%209V4h5M20%209V4h-5M4%2015v5h5M20%2015v5h-5%27/%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%272.5%27/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M4%209V4h5M20%209V4h-5M4%2015v5h5M20%2015v5h-5%27/%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%272.5%27/%3E%3C/svg%3E")}
+ #unplacedBtn::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27/%3E%3Cpath%20d%3D%27M9.5%209.5a2.5%202.5%200%201%201%203.5%202.3c-.6.3-1%20.8-1%201.5v.4%27/%3E%3Cpath%20d%3D%27M12%2017h.01%27/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27/%3E%3Cpath%20d%3D%27M9.5%209.5a2.5%202.5%200%201%201%203.5%202.3c-.6.3-1%20.8-1%201.5v.4%27/%3E%3Cpath%20d%3D%27M12%2017h.01%27/%3E%3C/svg%3E")}
+ #reviewBtn::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M4%2013l2.5-8h11L20%2013v6H4z%27/%3E%3Cpath%20d%3D%27M4%2013h4.5l1%202h5l1-2H20%27/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M4%2013l2.5-8h11L20%2013v6H4z%27/%3E%3Cpath%20d%3D%27M4%2013h4.5l1%202h5l1-2H20%27/%3E%3C/svg%3E")}
+ #addBtn::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27/%3E%3Cpath%20d%3D%27M12%208v8M8%2012h8%27/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27/%3E%3Cpath%20d%3D%27M12%208v8M8%2012h8%27/%3E%3C/svg%3E")}
+ #addSelfBtn::before{-webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2710%27%20cy%3D%278%27%20r%3D%274%27/%3E%3Cpath%20d%3D%27M3%2020c.8-3.5%203.6-5.5%207-5.5%201.3%200%202.5.3%203.5.8%27/%3E%3Cpath%20d%3D%27M19%2014v6M16%2017h6%27/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2710%27%20cy%3D%278%27%20r%3D%274%27/%3E%3Cpath%20d%3D%27M3%2020c.8-3.5%203.6-5.5%207-5.5%201.3%200%202.5.3%203.5.8%27/%3E%3Cpath%20d%3D%27M19%2014v6M16%2017h6%27/%3E%3C/svg%3E")}
+ #dock .seg button.on{color:var(--accent2)!important;font-weight:700}
+ #dock .primary{margin-left:0;color:var(--accent2)!important;font-weight:700}
+ #dock .badge{position:absolute;top:0;left:calc(50% + 6px);margin:0;font-size:10px;min-width:16px;height:16px;line-height:16px;padding:0 4px}
+ html[data-theme=dark] #dock .btn,html[data-theme=dark] #dock .seg button{color:#d9cfbd}
+ html[data-theme=dark] #dock .seg button.on,html[data-theme=dark] #dock .primary{color:#f0b27a!important}
+ .hint{bottom:calc(64px + env(safe-area-inset-bottom))}
+
+ .hint{bottom:calc(66px + env(safe-area-inset-bottom));left:0;right:0;text-align:center}
+ #threeLegend{bottom:calc(92px + env(safe-area-inset-bottom))!important}
+ #toast{bottom:calc(76px + env(safe-area-inset-bottom))}
+ #installTip{bottom:calc(72px + env(safe-area-inset-bottom))}
+ #drawer{height:min(72vh,calc(100vh - 70px - env(safe-area-inset-top)));padding-bottom:env(safe-area-inset-bottom)}
+}
+/* opened from the home screen: no browser bar, so nothing to nag about */
+@media (display-mode:standalone){#installTip{display:none!important}}
 </style>
 </head>
 <body class="intro">
@@ -240,15 +311,19 @@ html[data-theme=dark] #msg h2{color:#fbf4e6}
   <button class="walk" id="walk">Walk to the tree</button><button class="skip" id="skip">Skip</button><button class="themeBtn introTheme" type="button" aria-label="Switch to night">☾</button></div>
 <header>
   <div class="brand"><h1>The Clark Family</h1><span id="count">Loading…</span></div>
-  <div class="search"><input id="q" placeholder="Find a relative…" autocomplete="off"><div class="results" id="results"></div></div>
-  <div class="seg"><button id="v2" class="on">Tree</button><button id="v3">3D</button></div>
-  <button class="btn" id="fit">Fit</button>
+  <div class="search"><input id="q" type="search" placeholder="Find a relative…" autocomplete="off" enterkeyhint="search"><div class="results" id="results"></div></div>
+  <button class="btn iconBtn" id="searchToggle" type="button" aria-label="Find a relative"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg></button>
+  <nav id="dock" aria-label="Tree controls">
+    <div class="seg"><button id="v2" class="on">Tree</button><button id="v3">3D</button></div>
+    <button class="btn" id="fit" aria-label="Fit the tree to the screen">Fit</button>
+    <button class="btn hidden" id="unplacedBtn">Unplaced <span class="badge" id="unplacedN">0</span></button>
+    <button class="btn hidden" id="reviewBtn">Review <span class="badge" id="reviewN">0</span></button>
+    <button class="btn primary hidden" id="addBtn">+ Person</button>
+    <a class="btn primary hidden" id="addSelfBtn" href="/add" style="text-decoration:none">Add yourself</a>
+  </nav>
   <button class="btn themeBtn" type="button" aria-label="Switch to night">☾</button>
-  <button class="btn hidden" id="unplacedBtn">Unplaced <span class="badge" id="unplacedN">0</span></button>
-  <button class="btn hidden" id="reviewBtn">Review <span class="badge" id="reviewN">0</span></button>
-  <button class="btn primary hidden" id="addBtn">+ Person</button>
-  <a class="btn primary hidden" id="addSelfBtn" href="/add" style="text-decoration:none">Add yourself</a>
 </header>
+<div id="installTip" class="hidden" role="dialog" aria-label="Put the tree on your home screen"><div><b>Put the tree on your home screen</b><span id="installHow">It opens full screen, like an app.</span></div><button class="btn primary" id="installGo">Install</button><button class="btn ghost" id="installX" aria-label="Not now">✕</button></div>
 <div id="stage"><svg id="svg"><g id="world"></g></svg></div>
 <div id="three"></div><div id="threeLegend">Every branch holds a story · Select a portrait to explore</div><div id="portraitHover" role="tooltip"></div>
 <div id="msg"><div><h2>Opening the family tree…</h2><p>Gathering everyone.</p></div></div>
@@ -700,7 +775,28 @@ q.addEventListener('input',()=>{const t=q.value.trim().toLowerCase();if(!t||!IDX
   res.style.display='block';});
 res.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(!b)return;res.style.display='none';q.value='';const id=b.dataset.go;
   if(mode==='3d')setMode('2d');openProfile(id);const n=[...document.querySelectorAll('.node')].find(n=>n.dataset.id===id);if(n){n.classList.remove('flash');void n.getBBox();n.classList.add('flash');}});
-q.addEventListener('blur',()=>setTimeout(()=>res.style.display='none',200));
+q.addEventListener('blur',()=>setTimeout(()=>{res.style.display='none';if(!q.value.trim())$('header').classList.remove('searching');},200));
+$('#searchToggle').onclick=()=>{$('header').classList.add('searching');q.focus();};
+q.addEventListener('keydown',e=>{if(e.key==='Escape'){q.value='';res.style.display='none';q.blur();$('header').classList.remove('searching');}});
+res.addEventListener('click',()=>setTimeout(()=>$('header').classList.remove('searching'),0));
+
+/* ---------- home-screen app ---------- */
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+const Install=(()=>{let deferred=null,want=false;
+  const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const dismissed=()=>{try{return +localStorage.getItem('clarkInstallX')>Date.now();}catch(_){return false;}};
+  function show(){if(standalone||dismissed()||!want)return;
+    if(deferred){$('#installHow').textContent='It opens full screen, like an app.';$('#installGo').classList.remove('hidden');}
+    else if(ios){$('#installHow').innerHTML='Tap <b>Share</b> <span aria-hidden="true">⎙</span> below, then <b>Add to Home Screen</b>.';$('#installGo').classList.add('hidden');}
+    else return;
+    $('#installTip').classList.remove('hidden');}
+  function hide(days){$('#installTip').classList.add('hidden');if(days)try{localStorage.setItem('clarkInstallX',Date.now()+days*864e5);}catch(_){}}
+  addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;show();});
+  addEventListener('appinstalled',()=>hide(3650));
+  $('#installGo').onclick=async()=>{if(!deferred)return;deferred.prompt();const c=await deferred.userChoice.catch(()=>({}));deferred=null;hide(c.outcome==='accepted'?3650:14);};
+  $('#installX').onclick=()=>hide(14);
+  return {ready(){want=true;setTimeout(show,2600);}};})();
 
 /* ---------- Self-contained, interactive 3D family orchard ----------
    Uses the native canvas API, not CDN scripts or WebGL extensions.
@@ -1103,7 +1199,7 @@ Paint.draw($('#introScene'),'intro');
 Paint.draw($('#backdrop'),'backdrop');
 
 /* ---------- light / night switch ---------- */
-function setTheme(t,save){document.documentElement.dataset.theme=t;if(save){try{localStorage.setItem('clarkTheme',t);}catch(e){}}
+function setTheme(t,save){document.documentElement.dataset.theme=t;document.querySelectorAll('meta[name=theme-color]').forEach(m=>{m.content=t==='dark'?'#141726':'#f3efe0';m.removeAttribute('media');});if(save){try{localStorage.setItem('clarkTheme',t);}catch(e){}}
   const night=t==='dark';for(const b of document.querySelectorAll('.themeBtn')){b.textContent=night?'☀︎':'☾';b.setAttribute('aria-label',night?'Switch to day':'Switch to night');b.title=night?'Day':'Night';}
   if($('#introScene'))Paint.draw($('#introScene'),'intro');Paint.draw($('#backdrop'),'backdrop');
   if(typeof orchard!=='undefined'&&orchard)orchard.draw();Ambient.wake();}
@@ -1141,7 +1237,7 @@ const Ambient=(()=>{const cv=$('#ambient'),ctx=cv.getContext('2d');let w=0,h=0,d
 setTheme(document.documentElement.dataset.theme||'light',false);
 setTimeout(()=>Ambient.gust(46),500);
 let introDone=false;
-function finishIntro(){introDone=true;Ambient.gust(70);document.body.classList.remove('intro');const it=$('#intro');it.classList.add('fade');setTimeout(()=>it.remove(),1100);schedule();}
+function finishIntro(){introDone=true;Ambient.gust(70);Install.ready();document.body.classList.remove('intro');const it=$('#intro');it.classList.add('fade');setTimeout(()=>it.remove(),1100);schedule();}
 function walk(){const it=$('#intro');if(it.classList.contains('go'))return;it.classList.add('go');
  const sc=$('#introScene');const rm=matchMedia('(prefers-reduced-motion:reduce)').matches;
  if(!rm){sc.style.transformOrigin='49% 68%';sc.style.transform='scale(2.5)';setTimeout(finishIntro,1800);}else finishIntro();}

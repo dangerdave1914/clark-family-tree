@@ -19,6 +19,13 @@ import addHtml from '../public/add.html';
 import adminHtml from '../public/admin.html';
 import familyCss from '../public/family.css';
 import shimJs from '../public/shim.js';
+import swJs from '../public/sw.js';
+import manifestJson from '../public/manifest.webmanifest';
+import icon192 from '../public/icons/icon-192.png';
+import icon512 from '../public/icons/icon-512.png';
+import iconMask from '../public/icons/maskable-512.png';
+import iconApple from '../public/icons/apple-touch-icon.png';
+import icon32 from '../public/icons/favicon-32.png';
 
 const PAGES = {
   '/': [indexHtml, 'text/html; charset=utf-8'], '/index.html': [indexHtml, 'text/html; charset=utf-8'],
@@ -27,7 +34,14 @@ const PAGES = {
   '/admin': [adminHtml, 'text/html; charset=utf-8'], '/admin.html': [adminHtml, 'text/html; charset=utf-8'],
   '/family.css': [familyCss, 'text/css; charset=utf-8'],
   '/shim.js': [shimJs, 'text/javascript; charset=utf-8'],
+  // Home-screen app: manifest, service worker, icons
+  '/manifest.webmanifest': [manifestJson, 'application/manifest+json'],
+  '/sw.js': [swJs, 'text/javascript; charset=utf-8'],
+  '/icons/icon-192.png': [icon192, 'image/png', true], '/icons/icon-512.png': [icon512, 'image/png', true],
+  '/icons/maskable-512.png': [iconMask, 'image/png', true], '/icons/apple-touch-icon.png': [iconApple, 'image/png', true],
+  '/apple-touch-icon.png': [iconApple, 'image/png', true], '/favicon.ico': [icon32, 'image/png', true], '/icons/favicon-32.png': [icon32, 'image/png', true],
 };
+const ICON_HEADERS = { 'cache-control': 'public, max-age=604800', 'x-content-type-options': 'nosniff' };
 const PAGE_HEADERS = { 'cache-control': 'no-cache', 'x-content-type-options': 'nosniff', 'referrer-policy': 'same-origin', 'x-robots-tag': 'noindex' };
 
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' };
@@ -458,7 +472,7 @@ export default {
 
       if (path.startsWith('/api/')) return fail('Not found', 404);
       const page = PAGES[path] || PAGES[path.replace(/\/$/, '')];
-      if (page && (method === 'GET' || method === 'HEAD')) return new Response(method === 'HEAD' ? null : page[0], { headers: { 'content-type': page[1], ...PAGE_HEADERS } });
+      if (page && (method === 'GET' || method === 'HEAD')) return new Response(method === 'HEAD' ? null : page[0], { headers: { 'content-type': page[1], ...(page[2] ? ICON_HEADERS : PAGE_HEADERS) } });
       return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain' } });
     } catch (err) {
       return fail(err && err.message ? err.message : 'Something went wrong.', 500);

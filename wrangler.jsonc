@@ -5,7 +5,8 @@
   "main": "src/worker.js",
   "compatibility_date": "2025-09-01",
   "rules": [
-    { "type": "Text", "globs": ["**/*.html", "**/*.css", "**/public/*.js"], "fallthrough": false }
+    { "type": "Text", "globs": ["**/*.html", "**/*.css", "**/public/*.js", "**/*.webmanifest"], "fallthrough": false },
+    { "type": "Data", "globs": ["**/*.png"], "fallthrough": false }
   ],
   "d1_databases": [
     {
