@@ -38,7 +38,7 @@ const newId = (prefix) => `${prefix}-${crypto.randomUUID().replace(/-/g, '').sli
 const PERSON_FIELDS = ['first', 'last', 'nick', 'born', 'died', 'notes', 'verify', 'photo'];
 const MAX_PHOTO_BYTES = 1_500_000; // the pages shrink photos before upload; this is a safety cap
 const MAX_SUBMISSION_BYTES = 20_000;
-const SUBMISSION_KINDS = new Set(['intake', 'person', 'edit', 'heirloom']);
+const SUBMISSION_KINDS = new Set(['intake', 'person', 'edit', 'heirloom', 'link']);
 
 // ---------- auth helpers ----------
 async function hmacHex(secret, message) {
@@ -144,6 +144,139 @@ async function applyRelative(env, rel, anchorId, unionChoice, data) {
   return pid;
 }
 
+// ---------- linking people who are already on the tree ----------
+// rel says what TARGET is to ANCHOR: 'parent' | 'child' | 'spouse' | 'sibling' | 'same' | 'other'
+const fullName = (p) => (p ? `${p.first || ''} ${p.last || ''}`.trim() : 'someone');
+async function ancestorsOf(env, id, seen = new Set()) {
+  const p = await getPerson(env, id);
+  if (!p || !p.parent_union) return seen;
+  const u = await getUnion(env, p.parent_union);
+  for (const q of [u && u.a, u && u.b]) if (q && !seen.has(q)) { seen.add(q); await ancestorsOf(env, q, seen); }
+  return seen;
+}
+async function unionOf(env, x, y) {
+  return env.DB.prepare('SELECT * FROM unions WHERE (a=?1 AND b=?2) OR (a=?2 AND b=?1)').bind(x, y).first();
+}
+// Remove unions that no longer mean anything: no children and fewer than two partners.
+async function tidyUnions(env) {
+  await env.DB.prepare(`DELETE FROM unions WHERE (a IS NULL OR b IS NULL)
+    AND id NOT IN (SELECT parent_union FROM people WHERE parent_union IS NOT NULL)`).run();
+}
+async function linkChild(env, parentId, childId, unionChoice) {
+  if (parentId === childId) throw new Error('Someone can’t be their own parent.');
+  if ((await ancestorsOf(env, parentId)).has(childId)) throw new Error('That would make someone their own ancestor. Check who is the parent and who is the child.');
+  const parent = await getPerson(env, parentId), child = await getPerson(env, childId);
+  let chosen = unionChoice && unionChoice !== '__alone' ? await getUnion(env, unionChoice) : null;
+  if (chosen && chosen.a !== parentId && chosen.b !== parentId) chosen = null;
+  const cu = child.parent_union ? await getUnion(env, child.parent_union) : null;
+  if (cu) {
+    const partners = [cu.a, cu.b].filter(Boolean);
+    if (partners.includes(parentId) && (!chosen || chosen.id === cu.id)) return 'already';
+    // The child's current parents all belong to the chosen couple: move the child to that couple.
+    if (chosen && partners.every((q) => q === chosen.a || q === chosen.b)) {
+      await env.DB.prepare('UPDATE people SET parent_union=? WHERE id=?').bind(chosen.id, childId).run();
+      return 'moved';
+    }
+    // The child has room for another parent: add this one.
+    if (partners.length < 2 && !partners.includes(parentId)) {
+      const slot = !cu.a ? 'a' : 'b';
+      const other = partners[0];
+      // If these two parents are already a couple elsewhere, use that couple instead of a second one.
+      const existing = other ? await unionOf(env, parentId, other) : null;
+      if (existing) await env.DB.prepare('UPDATE people SET parent_union=? WHERE id=?').bind(existing.id, childId).run();
+      else await env.DB.prepare(`UPDATE unions SET ${slot}=? WHERE id=?`).bind(parentId, cu.id).run();
+      return 'added';
+    }
+    const names = await Promise.all(partners.map((q) => getPerson(env, q)));
+    throw new Error(`${fullName(child)} already has two parents recorded (${names.map(fullName).join(' and ')}). Fix those first.`);
+  }
+  let uid = chosen && chosen.id;
+  if (!uid) {
+    const solo = await env.DB.prepare('SELECT id FROM unions WHERE (a=?1 AND b IS NULL) OR (b=?1 AND a IS NULL)').bind(parentId).first();
+    uid = solo ? solo.id : newId('u');
+    if (!solo) await env.DB.prepare('INSERT INTO unions (id,a,b) VALUES (?,?,NULL)').bind(uid, parentId).run();
+  }
+  await env.DB.prepare('UPDATE people SET parent_union=? WHERE id=?').bind(uid, childId).run();
+  return 'linked';
+}
+async function mergePeople(env, keepId, dupId) {
+  if (keepId === dupId) throw new Error('That’s the same entry.');
+  const keep = await getPerson(env, keepId), dup = await getPerson(env, dupId);
+  // Fill gaps in the kept record from the duplicate.
+  const sets = [], vals = [];
+  for (const k of ['last', 'nick', 'born', 'died', 'notes', 'photo']) if (!keep[k] && dup[k]) { sets.push(`${k}=?`); vals.push(dup[k]); }
+  if (!keep.parent_union && dup.parent_union) { sets.push('parent_union=?'); vals.push(dup.parent_union); }
+  else if (keep.parent_union && dup.parent_union && keep.parent_union !== dup.parent_union) {
+    const a = await getUnion(env, keep.parent_union), b = await getUnion(env, dup.parent_union);
+    const pa = [a && a.a, a && a.b].filter(Boolean), pb = [b && b.a, b && b.b].filter(Boolean);
+    if (pb.length > pa.length) { sets.push('parent_union=?'); vals.push(dup.parent_union); }
+  }
+  if (sets.length) await env.DB.prepare(`UPDATE people SET ${sets.join(',')} WHERE id=?`).bind(...vals, keepId).run();
+  // Re-point the duplicate's marriages and keepsakes.
+  for (const col of ['a', 'b']) {
+    const rows = (await env.DB.prepare(`SELECT * FROM unions WHERE ${col}=?`).bind(dupId).all()).results;
+    for (const u of rows) {
+      const other = col === 'a' ? u.b : u.a;
+      const same = other ? await unionOf(env, keepId, other) : null;
+      if (other === keepId) { await env.DB.prepare(`UPDATE unions SET ${col}=NULL WHERE id=?`).bind(u.id).run(); continue; }
+      if (same && same.id !== u.id) {
+        await env.DB.prepare('UPDATE people SET parent_union=? WHERE parent_union=?').bind(same.id, u.id).run();
+        await env.DB.prepare('DELETE FROM unions WHERE id=?').bind(u.id).run();
+      } else await env.DB.prepare(`UPDATE unions SET ${col}=? WHERE id=?`).bind(keepId, u.id).run();
+    }
+  }
+  await env.DB.prepare('UPDATE heirlooms SET person=? WHERE person=?').bind(keepId, dupId).run();
+  await env.DB.prepare('DELETE FROM people WHERE id=?').bind(dupId).run();
+  return 'merged';
+}
+async function applyLink(env, s) {
+  const anchorId = s.anchor, targetId = s.target;
+  const anchor = await getPerson(env, anchorId);
+  if (!anchor) throw new Error('That person is no longer on the tree.');
+  if (s.rel === 'other') {
+    const note = `Says they are related to ${clean(s.text, 300) || 'someone'}${s.target ? '' : ''} — needs placing.`;
+    await env.DB.prepare('UPDATE people SET verify=? WHERE id=?').bind(addNote(anchor.verify, note), anchorId).run();
+    return 'noted';
+  }
+  const target = await getPerson(env, targetId);
+  if (!target) throw new Error('The person they picked is no longer on the tree.');
+  let r;
+  if (s.rel === 'parent') r = await linkChild(env, targetId, anchorId, s.union);
+  else if (s.rel === 'child') r = await linkChild(env, anchorId, targetId, s.union);
+  else if (s.rel === 'spouse') {
+    if (anchorId === targetId) throw new Error('Someone can’t marry themselves.');
+    if (await unionOf(env, anchorId, targetId)) r = 'already';
+    else {
+      // If one of them is a lone parent, make that the couple so existing children get both parents.
+      const solo = await env.DB.prepare('SELECT id,a,b FROM unions WHERE ((a=?1 AND b IS NULL) OR (b=?1 AND a IS NULL)) AND id IN (SELECT parent_union FROM people)').bind(anchorId).first();
+      if (solo && s.shareChildren) await env.DB.prepare(`UPDATE unions SET ${solo.a ? 'b' : 'a'}=? WHERE id=?`).bind(targetId, solo.id).run();
+      else await env.DB.prepare('INSERT INTO unions (id,a,b) VALUES (?,?,?)').bind(newId('u'), anchorId, targetId).run();
+      r = 'linked';
+    }
+  } else if (s.rel === 'sibling') {
+    if (anchorId === targetId) throw new Error('That’s the same person.');
+    const ua = anchor.parent_union, ut = target.parent_union;
+    if (ua && ut && ua === ut) r = 'already';
+    else if (ua && !ut) { await env.DB.prepare('UPDATE people SET parent_union=? WHERE id=?').bind(ua, targetId).run(); r = 'linked'; }
+    else if (!ua && ut) { await env.DB.prepare('UPDATE people SET parent_union=? WHERE id=?').bind(ut, anchorId).run(); r = 'linked'; }
+    else if (!ua && !ut) {
+      const uid = newId('u');
+      await env.DB.prepare("INSERT INTO unions (id,a,b,notes) VALUES (?,NULL,NULL,'Parents unknown')").bind(uid).run();
+      await env.DB.batch([env.DB.prepare('UPDATE people SET parent_union=? WHERE id=?').bind(uid, anchorId), env.DB.prepare('UPDATE people SET parent_union=? WHERE id=?').bind(uid, targetId)]);
+      r = 'linked';
+    } else {
+      const a = await getUnion(env, ua), t = await getUnion(env, ut);
+      const na = [a.a, a.b].filter(Boolean).length, nt = [t.a, t.b].filter(Boolean).length;
+      if (na === 0) { await env.DB.prepare('UPDATE people SET parent_union=? WHERE parent_union=?').bind(ut, ua).run(); r = 'linked'; }
+      else if (nt === 0) { await env.DB.prepare('UPDATE people SET parent_union=? WHERE parent_union=?').bind(ua, ut).run(); r = 'linked'; }
+      else throw new Error('They each already have different parents recorded. Link them through their parents instead.');
+    }
+  } else if (s.rel === 'same') r = await mergePeople(env, targetId, anchorId);
+  else throw new Error('Unknown relationship.');
+  await tidyUnions(env);
+  return r;
+}
+
 // The guided "add yourself" form: one person plus who their parents / spouse are.
 async function applyIntake(env, s, submitter) {
   const person = s.person || {};
@@ -185,6 +318,7 @@ async function approveSubmission(env, sub) {
   const s = JSON.parse(sub.payload);
   const who = sub.submitter || 'a family member';
   if (sub.kind === 'intake') return applyIntake(env, s, who);
+  if (sub.kind === 'link') { if (s.rel === 'same') throw new Error('Only the organizer can merge duplicates.'); await applyLink(env, s); return s.anchor; }
   if (sub.kind === 'person') { const id = await applyRelative(env, s.rel, s.anchor, s.union, s.data || {}); await approvePhotos(env, [s.data && s.data.photo]); return id; }
   if (sub.kind === 'edit') {
     if (!(await getPerson(env, s.anchor))) throw new Error('That person is no longer on the tree.');
@@ -307,6 +441,11 @@ export default {
           if (act[2] === 'approve') person = await approveSubmission(env, sub);
           await env.DB.prepare('UPDATE submissions SET status=? WHERE id=?').bind(act[2] === 'approve' ? 'approved' : 'declined', sub.id).run();
           return json({ ok: true, person });
+        }
+        if (path === '/api/admin/link' && method === 'POST') {
+          const body = await request.json();
+          const result = await applyLink(env, body);
+          return json({ ok: true, result });
         }
         if (path === '/api/admin/write' && method === 'POST') {
           const body = await request.json();

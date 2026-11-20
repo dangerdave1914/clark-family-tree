@@ -136,6 +136,15 @@ header{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;gap:10px;alig
 .f input,.f select,.f textarea{padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:var(--bg)}
 .row{display:flex;gap:10px}.row>.f{flex:1}
 .sub-item{border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:8px}
+.linklist{max-height:38vh;overflow:auto;border:1px solid var(--border);border-radius:12px;margin-bottom:10px}
+.lpick{display:flex;gap:10px;align-items:center;width:100%;text-align:left;border:0;border-bottom:1px solid var(--border);background:none;padding:9px 11px;cursor:pointer;font:inherit;color:inherit}
+.lpick:last-child{border-bottom:0}
+.lpick:hover,.lpick:focus{background:var(--soft);outline:none}
+.lpick.on{background:color-mix(in srgb,var(--accent2,#4f6b52) 16%,transparent);box-shadow:inset 3px 0 0 var(--accent2,#4f6b52)}
+.lpick b{display:block;font-size:14px}.lpick small{display:block;color:var(--muted);font-size:12px}
+.lpick .lf{width:34px;height:34px;border-radius:50%;background:var(--soft);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex:none;overflow:hidden}
+.lpick .lf img{width:100%;height:100%;object-fit:cover}
+.preview{background:var(--soft);border-radius:10px;padding:10px 12px;margin:6px 0 12px;font-size:14px}
 .sub-item .actions{margin-top:8px}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:60;display:none;max-width:90vw}
 #msg{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:5;color:var(--ink);text-align:center;padding:30px}
@@ -471,7 +480,7 @@ async function openProfile(id,silent){if(!P[id])return;sel=id;const p=P[id],r=re
      ${hs.length?hs.map(([hid,h])=>`<div class="heir">${h.photo?`<img src="${esc(blobUrl(h.photo))}" alt="">`:''}<div><b>${esc(h.title||'Untitled')}</b><p>${esc(h.story||'')}</p>
        <small>Attested by ${esc((names[h.by]&&names[h.by].name)||'a family member')}${h.at?' · '+new Date(h.at).toLocaleDateString():''}</small></div></div>`).join(''):'<div class="none">No heirlooms recorded yet.</div>'}</div>
    <div class="actions">
-     ${canSuggest?`<button class="btn primary" data-act="relative">Add relative</button><button class="btn" data-act="heirloom">Add heirloom</button><button class="btn" data-act="edit">${canAdmin?'Edit':'Suggest edit'}</button>`:''}
+     ${canSuggest?`<button class="btn primary" data-act="relative">Add relative</button>${window.ClarkTree?`<button class="btn primary" data-act="link">Link to someone on the tree</button>`:''}<button class="btn" data-act="heirloom">Add heirloom</button><button class="btn" data-act="edit">${canAdmin?'Edit':'Suggest edit'}</button>`:''}
      ${canAdmin?`<button class="btn danger" data-act="remove">Remove</button>`:''}
    </div>`;
   $('#drawer').classList.add('open');
@@ -480,7 +489,7 @@ function closeDrawer(){$('#drawer').classList.remove('open');sel=null;document.q
 $('#drawer').addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){openProfile(g.dataset.go);return;}
   const a=e.target.closest('[data-act]');if(!a)return;const act=a.dataset.act;
   if(act==='close')closeDrawer();else if(act==='relative')personForm('relative',sel);else if(act==='edit')personForm('edit',sel);
-  else if(act==='heirloom')heirloomForm(sel);else if(act==='remove')removeForm(sel);});
+  else if(act==='heirloom')heirloomForm(sel);else if(act==='link')linkForm(sel);else if(act==='remove')removeForm(sel);});
 
 /* ---------- modal & forms ---------- */
 function modal(html,onSubmit){$('#mbox').innerHTML=html;$('#modal').classList.add('open');const f=$('#mbox form');
@@ -545,6 +554,67 @@ function heirloomForm(pid){modal(`<form><h2>Add an heirloom</h2><p class="lead">
   <div class="actions"><button type="submit" class="btn primary">${canAdmin?'Save heirloom':'Submit for review'}</button><button type="button" class="btn ghost" data-cancel>Cancel</button></div></form>`,
   async fd=>{const h={person:pid,title:fd.get('title').trim(),story:(fd.get('story')||'').trim(),by:myId||null,at:Date.now()};const ph=await upload(fd.get('photo'));if(ph)h.photo=ph;
     if(canAdmin){await db.collection('heirlooms').add(h);toast('Heirloom saved.');}else await submit({kind:'heirloom',anchor:pid,data:h});});}
+
+/* ---------- link two people who are already on the tree ---------- */
+// rel = what the PICKED person is to the anchor (the profile you're on).
+function linkForm(anchor){const A=P[anchor];const firstA=A.first||fullName(anchor);
+  const people=IDX.ids.filter(id=>id!==anchor).sort((a,b)=>fullName(a).localeCompare(fullName(b))||(+P[a].born||0)-(+P[b].born||0));
+  const spousesOf=id=>(IDX.unionsOf[id]||[]).map(uid=>({uid,sp:IDX.partner(uid,id)})).filter(x=>valid(x.sp));
+  const soloKids=id=>(IDX.unionsOf[id]||[]).filter(uid=>!valid(IDX.partner(uid,id))).flatMap(uid=>IDX.kids[uid]||[]);
+  const face=id=>`<span class="lf">${P[id].photo?`<img src="${esc(blobUrl(P[id].photo))}" alt="">`:esc(initials(id))}</span>`;
+  const item=(id,on)=>`<button type="button" class="lpick${on?' on':''}" data-pick="${esc(id)}">${face(id)}<span><b>${esc(fullName(id))}${P[id].nick?` “${esc(P[id].nick)}”`:''}${P[id].born?` · b. ${esc(P[id].born)}`:''}</b><small>${esc(context(id))}</small></span></button>`;
+  let target=null;
+  modal(`<form><h2>Link ${esc(fullName(anchor))}</h2>
+    <p class="lead">For two people who are <b>both already on the tree</b>. To add someone new, use “Add relative”.${canAdmin?'':' Your link is reviewed before it appears.'}</p>
+    <div class="f"><label>${esc(firstA)} is the…</label><select name="rel" id="lkRel">
+      <option value="parent">child of</option><option value="child">parent of</option><option value="spouse">husband or wife of</option>
+      <option value="sibling">brother or sister of</option>${canAdmin?'<option value="same">same person as (a duplicate)</option>':''}
+      <option value="other">other relative (cousin, aunt, grandparent…)</option></select></div>
+    <div class="f" id="lkOtherF"><label>How exactly? Name the people in between if you can</label><input name="text" id="lkText" placeholder="e.g. cousin — her mother Ida and my grandmother Lola were sisters"></div>
+    <div class="f" id="lkFindF"><label>Who?</label><input id="lkFind" placeholder="Search names…" autocomplete="off"></div>
+    <div class="linklist" id="lkList"></div>
+    <div class="f" id="lkUnionF"><label id="lkUnionL">Other parent</label><select name="union" id="lkUnion"></select></div>
+    <label class="f" id="lkShareF" style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" name="share" id="lkShare" checked> <span id="lkShareT"></span></label>
+    <div class="preview" id="lkPrev">Pick someone from the list.</div>
+    <div class="actions"><button type="submit" class="btn primary" id="lkGo">${canAdmin?'Link them':'Send for review'}</button><button type="button" class="btn ghost" data-cancel>Cancel</button></div></form>`,
+  async fd=>{const rel=fd.get('rel');if(rel!=='other'&&!target)throw new Error('Pick someone from the list first.');
+    if(rel==='other'&&!(fd.get('text')||'').trim())throw new Error('Describe how they are related.');
+    const body={rel,anchor,target,union:fd.get('union')||null,shareChildren:!!fd.get('share'),text:(fd.get('text')||'').trim()};
+    if(rel==='other'&&target)body.text=`${fullName(target)}: ${body.text}`;
+    if(canAdmin){const r=await ClarkTree.api('/api/admin/link',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+      await ClarkTree.refresh();toast(r.result==='already'?'They were already linked.':r.result==='merged'?'Merged into one person.':r.result==='noted'?'Noted for placing.':'Linked.');
+      setTimeout(()=>openProfile(rel==='same'?target:anchor),350);}
+    else await submit({kind:'link',...body});});
+  const relSel=$('#lkRel'),list=$('#lkList'),uSel=$('#lkUnion');
+  function draw(){const t=$('#lkFind').value.trim().toLowerCase();
+    const hits=people.filter(id=>!t||`${fullName(id)} ${P[id].nick||''}`.toLowerCase().includes(t)).slice(0,60);
+    list.innerHTML=hits.map(id=>item(id,id===target)).join('')||'<div class="none" style="padding:10px">No one by that name. Use “Add relative” to add them.</div>';}
+  function sync(){const rel=relSel.value;
+    $('#lkOtherF').style.display=rel==='other'?'':'none';
+    let opts=[],label='';
+    if(rel==='parent'&&target){opts=spousesOf(target).map(x=>[x.uid,`and ${fullName(x.sp)}`]);label=`${fullName(target)} and who?`;}
+    if(rel==='child'&&target){opts=spousesOf(anchor).map(x=>[x.uid,`${firstA} and ${fullName(x.sp)}`]);label=`Whose child is ${P[target].first||'this'}?`;}
+    const showU=(rel==='parent'||rel==='child')&&target&&opts.length;
+    if(showU){const keep=uSel.value;uSel.innerHTML=opts.map(([v,t])=>`<option value="${esc(v)}">${esc(t)}</option>`).join('')+`<option value="__alone">${rel==='parent'?'other parent not on the tree':firstA+' only (other parent not on the tree)'}</option>`;if([...uSel.options].some(o=>o.value===keep))uSel.value=keep;$('#lkUnionL').textContent=label;}
+    else uSel.innerHTML='';
+    $('#lkUnionF').style.display=showU?'':'none';
+    const sk=rel==='spouse'?soloKids(anchor):[];
+    $('#lkShareF').style.display=sk.length&&target?'':'none';
+    if(sk.length&&target)$('#lkShareT').textContent=`${P[target].first||'They'} is also the parent of ${sk.map(k=>P[k].first).join(', ')}`;
+    // plain-language preview
+    let pv='Pick someone from the list.';
+    if(target||rel==='other'){const T=target?fullName(target):'';const un=uSel.value&&uSel.value!=='__alone'?U[uSel.value]:null;
+      const otherOf=(uid,p)=>{const q=IDX.partner(uid,p);return valid(q)?fullName(q):null;};
+      if(rel==='parent')pv=`${fullName(anchor)} will be shown as the child of ${T}${un?` and ${otherOf(uSel.value,target)}`:''}.`;
+      else if(rel==='child')pv=`${T} will be shown as the child of ${fullName(anchor)}${un?` and ${otherOf(uSel.value,anchor)}`:''}.`;
+      else if(rel==='spouse')pv=`${fullName(anchor)} and ${T} will be shown as married${sk.length&&$('#lkShare').checked?`, and both as parents of ${sk.map(k=>P[k].first).join(', ')}`:''}.`;
+      else if(rel==='sibling')pv=`${fullName(anchor)} and ${T} will be shown as brother/sister, under the same parents.`;
+      else if(rel==='same')pv=`${fullName(anchor)} will be merged into ${T}: one person, keeping both entries’ details and links. This can’t be undone.`;
+      else pv=`This gets noted on ${fullName(anchor)}’s profile for the organizer to place.${target?'':' Picking the relative from the list helps.'}`;}
+    $('#lkPrev').textContent=pv;$('#lkGo').textContent=rel==='same'?'Merge them':canAdmin?'Link them':'Send for review';}
+  list.addEventListener('click',e=>{const b=e.target.closest('[data-pick]');if(!b)return;target=target===b.dataset.pick?null:b.dataset.pick;draw();sync();});
+  $('#lkFind').addEventListener('input',draw);relSel.addEventListener('change',sync);uSel.addEventListener('change',sync);$('#lkShare').addEventListener('change',sync);
+  draw();sync();$('#lkFind').focus();}
 
 function removeForm(id){modal(`<form><h2>Remove ${esc(fullName(id))}?</h2><p class="lead">This takes them off the tree. Their children stay, connected to the other parent if one is recorded. This can’t be undone.</p>
   <div class="actions"><button type="submit" class="btn danger">Remove</button><button type="button" class="btn ghost" data-cancel>Cancel</button></div></form>`,
