@@ -419,6 +419,14 @@ export default {
       const member = await isMember(request, env);
       const admin = isAdmin(request, env);
 
+      // Device diagnostics from the tree page: screen size, phone model and painting events only.
+      if (path === '/api/diag' && method === 'POST') {
+        if (!member && !admin) return fail('Open the family link first.', 401);
+        const body = (await request.text()).slice(0, 6000);
+        await env.DB.prepare('INSERT INTO diag (id,at,ua,data) VALUES (?,?,?,?)').bind(newId('d'), Date.now(), (request.headers.get('user-agent') || '').slice(0, 300), body).run();
+        await env.DB.prepare('DELETE FROM diag WHERE id NOT IN (SELECT id FROM diag ORDER BY at DESC LIMIT 200)').run();
+        return json({ ok: true });
+      }
       if (path === '/api/tree' && method === 'GET') {
         if (!member && !admin) return fail('Open the family link first.', 401);
         return json(await loadTree(env));

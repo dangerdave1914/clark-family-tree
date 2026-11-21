@@ -251,6 +251,7 @@ html,body{overscroll-behavior:none}
 body{-webkit-tap-highlight-color:transparent}
 header{padding-top:max(10px,env(safe-area-inset-top));padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
 #intro .introTheme{top:max(14px,env(safe-area-inset-top))!important}
+@media (max-width:420px){#intro .introtext h1{font-size:clamp(34px,10.5vw,46px)}#intro .introtext{padding-top:40px}}
 #installTip{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:35;display:flex;gap:10px;align-items:center;max-width:460px;margin:0 auto;padding:12px 12px 12px 16px;border-radius:16px;background:rgba(250,247,237,.97);border:1px solid var(--border);box-shadow:0 12px 34px rgba(30,30,20,.22);font-size:14px;color:var(--ink)}
 #installTip>div{flex:1;display:flex;flex-direction:column;gap:2px}#installTip b{font-weight:600}#installTip span{color:var(--muted)}
 #installTip .ghost{background:none;border:0;opacity:.6}
@@ -1119,6 +1120,19 @@ addEventListener('resize',()=>{if(mode==='3d')orchard?.resize();});
 
 /* ORIGINAL PAINTED LANDSCAPE — soft tonal mixing, minute flecks, organic branching.
    Deliberately independent from the prior SVG / brush-scene implementation. */
+/* The painted scenes live on software ("read frequently") canvases, drawn by the phone's main processor.
+   On some phones Chrome wipes graphics-chip canvases (a Galaxy S20 showed the painting, then lost it). */
+function sceneCtx(c){return c.getContext('2d',{willReadFrequently:true});}
+/* Small diagnostic log, sent once per visit: screen, phone model and painting events, no family data. */
+const Diag=(()=>{const ev=[],t0=performance.now();let sent=false;
+  const log=(...a)=>{if(ev.length<80)ev.push(Math.round(performance.now()-t0)+' '+a.join(' '));};
+  addEventListener('error',e=>log('error',String(e.message).slice(0,160)));
+  addEventListener('unhandledrejection',e=>log('rejection',String(e.reason&&e.reason.message||e.reason).slice(0,160)));
+  document.addEventListener('visibilitychange',()=>log('visibility',document.visibilityState));
+  function send(){if(sent)return;sent=true;try{const body=JSON.stringify({v:'p5',dpr:devicePixelRatio,vw:innerWidth,vh:innerHeight,scr:[screen.width,screen.height],mem:navigator.deviceMemory||null,standalone:matchMedia('(display-mode: standalone)').matches,theme:document.documentElement.dataset.theme,ev});
+    navigator.sendBeacon?navigator.sendBeacon('/api/diag',new Blob([body],{type:'text/plain'})):fetch('/api/diag',{method:'POST',body,keepalive:true});}catch(_){}}
+  setTimeout(send,15000);addEventListener('pagehide',send);
+  return {log};})();
 const Paint=(()=>{
  // Painted to the screen's own shape: tall on phones, wide on computers.
  let W=1600,H=900,K=1;const TAU=Math.PI*2;
@@ -1361,12 +1375,12 @@ const Paint=(()=>{
    ()=>{if(kind==='intro')oak(ctx,r,W*.5,H*.90,portrait?W*.26:H*.22,true);
         else oak(ctx,r,W*(portrait?1.05:1.0),H*.93,portrait?W*.18:H*.14,false);},
    ()=>{canvasTexture(ctx,r);if(document.documentElement.dataset.theme==='dark')twilight(ctx,r);}];}
- function draw(canvas,kind){if(!canvas)return;fit(canvas);const ctx=canvas.getContext('2d',{alpha:false});
+ function draw(canvas,kind){if(!canvas)return;fit(canvas);const ctx=sceneCtx(canvas);
    for(const st of steps(ctx,rand(kind==='intro'?391722:982712),kind))st();}
  async function drawAsync(canvas,kind){if(!canvas)return;const off=document.createElement('canvas');fit(off);const w=W,h=H;
-   const ctx=off.getContext('2d',{alpha:false});const pause=()=>new Promise(res=>setTimeout(res,0));
+   const ctx=off.getContext('2d',{alpha:false,willReadFrequently:true});const pause=()=>new Promise(res=>setTimeout(res,0));
    for(const st of steps(ctx,rand(kind==='intro'?391722:982712),kind)){st();await pause();}
-   canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(off,0,0);
+   canvas.width=w;canvas.height=h;sceneCtx(canvas).drawImage(off,0,0);
    SPR.clear();off.width=off.height=0;}   // let go of the helpers and the scratch canvas straight away
  // Where the hero oak's crown sits, so the intro can zoom into it.
  function heroFocus(){return W<H?'50% 70%':'50% 57%';}
@@ -1393,7 +1407,7 @@ const Paint=(()=>{
 const PAINT_VER='p5';   // bump to make every device throw away its saved paintings
 // A painting that came out black or empty (a phone can drop the drawing surface while the app is in the background)
 // must never be saved or shown. Sample a handful of points; real paintings are never near-black at most of them.
-function looksBlank(canvas){try{const x=canvas.getContext('2d'),w=canvas.width,h=canvas.height;if(!w||!h)return true;let bad=0;
+function looksBlank(canvas){try{const x=sceneCtx(canvas),w=canvas.width,h=canvas.height;if(!w||!h)return true;let bad=0;
   for(const [fx,fy] of [[.5,.12],[.2,.35],[.8,.45],[.5,.6],[.3,.85],[.7,.92]]){const d=x.getImageData(Math.floor(w*fx),Math.floor(h*fy),1,1).data;if(d[3]<16||d[0]+d[1]+d[2]<24)bad++;}
   return bad>=4;}catch(_){return false;}}
 let paintChain=Promise.resolve();
@@ -1401,15 +1415,21 @@ function paintScene(canvas,kind){const job=paintChain.then(()=>paintSceneNow(can
 async function paintSceneNow(canvas,kind){if(!canvas)return;
   const [w,h]=Paint.dims(),theme=document.documentElement.dataset.theme||'light',tok=(canvas._tok=(canvas._tok||0)+1);
   const key=`/__paint/${PAINT_VER}/${kind}-${theme}-${w}x${h}.jpg`;
-  try{if('caches' in window){const hit=await (await caches.open('clark-paint')).match(key);
-    if(hit){const bmp=await createImageBitmap(await hit.blob());if(canvas._tok!==tok)return;canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(bmp,0,0,w,h);
-      if(!looksBlank(canvas))return;
+  Diag.log('paint',kind,w+'x'+h,theme);
+  try{if('caches' in window){const hit=await (await caches.open('clark-paint')).match(key);if(hit)Diag.log('saved-copy',kind);
+    if(hit){const bmp=await createImageBitmap(await hit.blob());if(canvas._tok!==tok)return;canvas.width=w;canvas.height=h;sceneCtx(canvas).drawImage(bmp,0,0,w,h);
+      if(!looksBlank(canvas)){Diag.log('shown-saved',kind);watchScene(canvas,kind);return;}
+      Diag.log('saved-copy-blank',kind);
       (await caches.open('clark-paint')).delete(key);}}}catch(_){}   // a bad saved copy: throw it away and paint fresh
   if(canvas._tok!==tok)return;
-  await Paint.drawAsync(canvas,kind);
+  const ts=performance.now();await Paint.drawAsync(canvas,kind);Diag.log('painted',kind,Math.round(performance.now()-ts)+'ms','blank='+looksBlank(canvas));watchScene(canvas,kind);
   if(looksBlank(canvas)&&!canvas._retried){canvas._retried=1;await new Promise(r=>setTimeout(r,600));if(canvas._tok===tok)await Paint.drawAsync(canvas,kind);}
   if(looksBlank(canvas)||document.visibilityState!=='visible')return;   // don't save a painting that may be broken
   try{canvas.toBlob(b=>{if(b&&b.size>20000&&'caches' in window)caches.open('clark-paint').then(c=>c.put(key,new Response(b,{headers:{'content-type':'image/jpeg'}}))).catch(()=>{});},'image/jpeg',.9);}catch(_){}}
+// After a scene is shown, check it again a few times: if the phone wiped it, note that and repaint once.
+function watchScene(canvas,kind){if(canvas._watch)return;canvas._watch=1;
+  canvas.addEventListener('contextlost',()=>Diag.log('contextlost',kind));canvas.addEventListener('contextrestored',()=>Diag.log('contextrestored',kind));
+  let n=0;const chk=()=>{if(++n>4)return;if(looksBlank(canvas)){Diag.log('wiped',kind,'check'+n);if(!canvas._rewiped){canvas._rewiped=1;paintScene(canvas,kind);}}setTimeout(chk,2500);};setTimeout(chk,1500);}
 const nextFrame=()=>new Promise(r=>requestAnimationFrame(()=>setTimeout(r,30)));
 // Opening scene first so something shows right away; the backdrop behind the tree follows a moment later.
 async function repaintScenes(withIntro){if(withIntro&&$('#introScene')&&!introDone){await paintScene($('#introScene'),'intro');await nextFrame();}await paintScene($('#backdrop'),'backdrop');}
