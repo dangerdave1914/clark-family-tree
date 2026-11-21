@@ -82,7 +82,8 @@ header{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;gap:10px;alig
 @keyframes fade{to{opacity:.95}}
 @media (prefers-reduced-motion:reduce){.reveal *{animation:none!important;opacity:1!important;stroke-dashoffset:0!important}}
 /* painted backdrop + intro */
-.scene{position:fixed;inset:0;width:100%;height:100%;display:block}
+.scene{position:fixed;inset:0;width:100%;height:100%;display:block;background:linear-gradient(#5b97d3 0%,#a9cde8 40%,#dfe8dc 58%,#8fb86a 72%,#4f8a4a 100%)}
+html[data-theme=dark] .scene{background:linear-gradient(#232b5e 0%,#5a4a8a 38%,#c9788c 56%,#5a5f80 70%,#1f2a3f 100%)}
 #backdrop{z-index:0;pointer-events:none}
 #stage{z-index:1}
 #intro{position:fixed;inset:0;z-index:40;overflow:hidden;background:var(--sky2)}
@@ -1127,8 +1128,8 @@ const Paint=(()=>{
  // Soft washes are drawn from one small cached gradient per colour, stretched into place.
  // Building a fresh gradient for each of thousands of washes is what made phones freeze.
  const SPR=new Map();
- function sprite(col){const q=col.map(v=>Math.max(0,Math.min(255,Math.round(v/4)*4)));const key=q.join(',');let c=SPR.get(key);
-   if(!c){c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const g=x.createRadialGradient(32,32,1.6,32,32,32);
+ function sprite(col){const q=col.map(v=>Math.max(0,Math.min(255,Math.round(v/10)*10)));const key=q.join(',');let c=SPR.get(key);
+   if(!c){if(SPR.size>=96)SPR.clear();c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d',{willReadFrequently:true});/* kept in ordinary memory, not the phone's graphics memory */const g=x.createRadialGradient(32,32,1.6,32,32,32);
      g.addColorStop(0,rgba(q,1));g.addColorStop(.5,rgba(q,.55));g.addColorStop(1,rgba(q,0));x.fillStyle=g;x.fillRect(0,0,64,64);SPR.set(key,c);}
    return c;}
  function soft(ctx,x,y,rx,ry,col,alpha){if(rx<.5||ry<.5||alpha<=0)return;const a=ctx.globalAlpha;ctx.globalAlpha=a*Math.min(1,alpha);ctx.drawImage(sprite(col),x-rx,y-ry,rx*2,ry*2);ctx.globalAlpha=a;}
@@ -1365,7 +1366,8 @@ const Paint=(()=>{
  async function drawAsync(canvas,kind){if(!canvas)return;const off=document.createElement('canvas');fit(off);const w=W,h=H;
    const ctx=off.getContext('2d',{alpha:false});const pause=()=>new Promise(res=>setTimeout(res,0));
    for(const st of steps(ctx,rand(kind==='intro'?391722:982712),kind)){st();await pause();}
-   canvas.width=w;canvas.height=h;canvas.getContext('2d',{alpha:false}).drawImage(off,0,0);}
+   canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(off,0,0);
+   SPR.clear();off.width=off.height=0;}   // let go of the helpers and the scratch canvas straight away
  // Where the hero oak's crown sits, so the intro can zoom into it.
  function heroFocus(){return W<H?'50% 70%':'50% 57%';}
  // Night: the same painting glazed into sunset, the sun dropping into the valley notch.
@@ -1384,21 +1386,30 @@ const Paint=(()=>{
    for(let i=0;i<220*AREA();i++){const y=r()*r()*H*.36,a=(1-y/(H*.36))*(.25+r()*.6);ctx.fillStyle=`rgba(255,248,235,${a})`;const z=(r()<.08?1.8:1)*K;ctx.fillRect(r()*W,y,z,z);}
    ctx.restore();
  }
- return {draw,drawAsync,heroFocus,dims};
+ return {draw,drawAsync,heroFocus,dims,spriteCount:()=>SPR.size};
 })();
 /* Paintings are saved on the device after the first time, so later opens show them instantly.
    A new copy is painted only when the screen shape, the theme or the painting itself changes. */
-const PAINT_VER='p4';
+const PAINT_VER='p5';   // bump to make every device throw away its saved paintings
+// A painting that came out black or empty (a phone can drop the drawing surface while the app is in the background)
+// must never be saved or shown. Sample a handful of points; real paintings are never near-black at most of them.
+function looksBlank(canvas){try{const x=canvas.getContext('2d'),w=canvas.width,h=canvas.height;if(!w||!h)return true;let bad=0;
+  for(const [fx,fy] of [[.5,.12],[.2,.35],[.8,.45],[.5,.6],[.3,.85],[.7,.92]]){const d=x.getImageData(Math.floor(w*fx),Math.floor(h*fy),1,1).data;if(d[3]<16||d[0]+d[1]+d[2]<24)bad++;}
+  return bad>=4;}catch(_){return false;}}
 let paintChain=Promise.resolve();
 function paintScene(canvas,kind){const job=paintChain.then(()=>paintSceneNow(canvas,kind)).catch(()=>{});paintChain=job;return job;}
 async function paintSceneNow(canvas,kind){if(!canvas)return;
   const [w,h]=Paint.dims(),theme=document.documentElement.dataset.theme||'light',tok=(canvas._tok=(canvas._tok||0)+1);
   const key=`/__paint/${PAINT_VER}/${kind}-${theme}-${w}x${h}.jpg`;
   try{if('caches' in window){const hit=await (await caches.open('clark-paint')).match(key);
-    if(hit){const bmp=await createImageBitmap(await hit.blob());if(canvas._tok!==tok)return;canvas.width=w;canvas.height=h;canvas.getContext('2d',{alpha:false}).drawImage(bmp,0,0,w,h);return;}}}catch(_){}
+    if(hit){const bmp=await createImageBitmap(await hit.blob());if(canvas._tok!==tok)return;canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(bmp,0,0,w,h);
+      if(!looksBlank(canvas))return;
+      (await caches.open('clark-paint')).delete(key);}}}catch(_){}   // a bad saved copy: throw it away and paint fresh
   if(canvas._tok!==tok)return;
   await Paint.drawAsync(canvas,kind);
-  try{canvas.toBlob(b=>{if(b&&'caches' in window)caches.open('clark-paint').then(c=>c.put(key,new Response(b,{headers:{'content-type':'image/jpeg'}}))).catch(()=>{});},'image/jpeg',.9);}catch(_){}}
+  if(looksBlank(canvas)&&!canvas._retried){canvas._retried=1;await new Promise(r=>setTimeout(r,600));if(canvas._tok===tok)await Paint.drawAsync(canvas,kind);}
+  if(looksBlank(canvas)||document.visibilityState!=='visible')return;   // don't save a painting that may be broken
+  try{canvas.toBlob(b=>{if(b&&b.size>20000&&'caches' in window)caches.open('clark-paint').then(c=>c.put(key,new Response(b,{headers:{'content-type':'image/jpeg'}}))).catch(()=>{});},'image/jpeg',.9);}catch(_){}}
 const nextFrame=()=>new Promise(r=>requestAnimationFrame(()=>setTimeout(r,30)));
 // Opening scene first so something shows right away; the backdrop behind the tree follows a moment later.
 async function repaintScenes(withIntro){if(withIntro&&$('#introScene')&&!introDone){await paintScene($('#introScene'),'intro');await nextFrame();}await paintScene($('#backdrop'),'backdrop');}
